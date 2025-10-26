@@ -1,38 +1,45 @@
+# app.py — same as your working chatbot, with correct Document objects
 import os
-import gradio as gr
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from pathlib import Path
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import Chroma
-from langchain.chains import RetrievalQA
+from langchain_core.documents import Document
 
 # --- Configuration ---
-INDEX_DIR = "index"
-MODEL = "gpt-4o-mini"  # ✅ fixed typo: was "gpt-4o-m1ni"
+ARTICLES_DIR = Path("content/articles")
+INDEX_DIR = Path("index")
+MODEL_NAME = "text-embedding-3-small"
 
-# --- Load index and model ---
-embedding = OpenAIEmbeddings()
-vectordb = Chroma(persist_directory=INDEX_DIR, embedding_function=embedding)
-retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-llm = ChatOpenAI(model=MODEL, temperature=0.3)
+# --- Embeddings & Index Setup ---
+embedding = OpenAIEmbeddings(model=MODEL_NAME)
 
-qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff")
+# ✅ Build a fresh index from markdown files (using Document objects)
+print("🧱 Rebuilding Chroma index from markdown files...")
+docs = []
+for md_file in ARTICLES_DIR.glob("*.md"):
+    text = md_file.read_text(encoding="utf-8")
+    docs.append(Document(page_content=text, metadata={"source": md_file.name}))
 
-def chat_fn(message, history):
-    """Handles user queries"""
-    try:
-        result = qa_chain.run(message)
-        return result
-    except Exception as e:
-        return f"⚠️ Error: {e}"
-
-demo = gr.ChatInterface(
-    fn=chat_fn,
-    title="💬 Ask Workfriend",
-    description="Ask Workfriend about articles and sensible tools for smart people.",
-    examples=[
-        "How to engage stakeholders?",
-        "What is the main idea of 'The Map Is Not the Territory'?"
-    ]
+vectordb = Chroma.from_documents(
+    documents=docs,
+    embedding=embedding,
+    persist_directory=str(INDEX_DIR),
 )
+retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
+# --- Chat Function ---
+def ask_workfriend(query):
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+    docs = retriever.invoke(query)
+    context = "\n\n".join([d.page_content for d in docs])
+    prompt = f"Use the context below to answer clearly and concisely.\n\n{context}\n\nQuestion: {query}"
+    return llm.invoke(prompt).content
+
+# --- Run Locally (terminal test) ---
 if __name__ == "__main__":
-    demo.launch()
+    print("✅ CaveBot ready!")
+    while True:
+        q = input("🔍 Ask: ")
+        if q.lower() in ["exit", "quit"]:
+            break
+        print("💬 Answer:\n", ask_workfriend(q))
