@@ -7,8 +7,13 @@ import gradio as gr
 
 # --- Configuration ---
 ARTICLES_DIR = Path("content/articles")
-INDEX_DIR = Path("index")
 MODEL_NAME = "text-embedding-3-small"
+
+# --- Adjust if folder missing ---
+if not ARTICLES_DIR.exists():
+    ARTICLES_DIR = Path(".")  # fallback to repo root
+
+INDEX_DIR = Path("index")
 
 # --- Embeddings & model ---
 openai_key = os.getenv("OPENAI_API_KEY")
@@ -20,21 +25,26 @@ print("🧱 Rebuilding Chroma index from markdown files...")
 
 docs = []
 for md_file in ARTICLES_DIR.glob("*.md"):
-    text = md_file.read_text(encoding="utf-8")
+    text = md_file.read_text(encoding="utf-8").strip()
+    if not text:
+        continue
     chunks = [text[i:i + 1500] for i in range(0, len(text), 1500)]
-    for i, chunk in enumerate(chunks):
+    for chunk in chunks:
         docs.append({"content": chunk, "metadata": {"source": md_file.name}})
+
+print(f"🔍 Found {len(docs)} markdown chunks from {len(list(ARTICLES_DIR.glob('*.md')))} files.")
+if not docs:
+    raise ValueError(f"❌ No markdowns found in {ARTICLES_DIR.resolve()}")
 
 # --- Create vector index ---
 vectordb = Chroma.from_texts(
     texts=[d["content"] for d in docs],
     embedding=embedding,
     metadatas=[d["metadata"] for d in docs],
-    persist_directory=str(INDEX_DIR)
 )
 retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
-# --- Define minimal retrieval+generation chain ---
+# --- Define retrieval + generation chain ---
 prompt = ChatPromptTemplate.from_template(
     "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
 )
@@ -46,8 +56,8 @@ def retrieve_and_answer(question: str):
     response = llm.invoke(filled_prompt)
     return response.content
 
-# --- Gradio wiring (ONLY change) ---
-def answer_fn(message, history):  # fixed: accept (message, history)
+# --- Gradio wiring (fixed argument signature) ---
+def answer_fn(message, history):
     try:
         return retrieve_and_answer(message)
     except Exception as e:
@@ -57,7 +67,7 @@ demo = gr.ChatInterface(
     fn=answer_fn,
     title="CaveBot",
     description="Ask about my markdown knowledge base",
-    chatbot=gr.Chatbot(type="messages"),  # avoid 'tuples' deprecation
+    chatbot=gr.Chatbot(type="messages"),
 )
 
 if __name__ == "__main__":
