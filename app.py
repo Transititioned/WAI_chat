@@ -1,64 +1,64 @@
 import os
 from pathlib import Path
-import gradio as gr
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
+import gradio as gr
 
+# --- Configuration ---
 ARTICLES_DIR = Path("content/articles")
-EMBED_MODEL = "text-embedding-3-small"
-CHAT_MODEL = "gpt-4o-mini"
+INDEX_DIR = Path("index")
+MODEL_NAME = "text-embedding-3-small"
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise EnvironmentError("Add OPENAI_API_KEY in Space → Settings → Variables")
+# --- Embeddings & model ---
+openai_key = os.getenv("OPENAI_API_KEY")
+embedding = OpenAIEmbeddings(model=MODEL_NAME, openai_api_key=openai_key)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-llm = ChatOpenAI(model=CHAT_MODEL, temperature=0.3, openai_api_key=OPENAI_API_KEY)
-_embedding = None
-_vectordb = None
-_index_built = False
+# --- Build documents ---
+print("🧱 Rebuilding Chroma index from markdown files...")
 
-def build_index_once():
-    global _embedding, _vectordb, _index_built
-    if _index_built:
-        return
-    print("🧠 Building index…")
-    _embedding = OpenAIEmbeddings(model=EMBED_MODEL, openai_api_key=OPENAI_API_KEY)
-    texts, metas = [], []
-    for f in ARTICLES_DIR.glob("*.md"):
-        txt = f.read_text(encoding="utf-8")
-        for i in range(0, len(txt), 1500):
-            chunk = txt[i:i+1500]
-            if chunk.strip():
-                texts.append(chunk)
-                metas.append({"source": f.name})
-    if not texts:
-        raise RuntimeError("No text found in markdown files")
-    _vectordb = Chroma.from_texts(texts=texts, embedding=_embedding, metadatas=metas)
-    _index_built = True
-    print(f"✅ Built index with {len(texts)} chunks")
+docs = []
+for md_file in ARTICLES_DIR.glob("*.md"):
+    text = md_file.read_text(encoding="utf-8")
+    chunks = [text[i:i + 1500] for i in range(0, len(text), 1500)]
+    for i, chunk in enumerate(chunks):
+        docs.append({"content": chunk, "metadata": {"source": md_file.name}})
 
+# --- Create vector index ---
+vectordb = Chroma.from_texts(
+    texts=[d["content"] for d in docs],
+    embedding=embedding,
+    metadatas=[d["metadata"] for d in docs],
+    persist_directory=str(INDEX_DIR)
+)
+retriever = vectordb.as_retriever(search_kwargs={"k": 3})
+
+# --- Define minimal retrieval+generation chain ---
 prompt = ChatPromptTemplate.from_template(
-    "Use the following context to answer clearly.\n\nContext:\n{context}\n\nQuestion:\n{question}"
+    "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
 )
 
-def answer_fn(question: str):
-    try:
-        if not _index_built:
-            build_index_once()
-        retriever = _vectordb.as_retriever(search_kwargs={"k": 3})
-        docs = retriever.invoke(question)
-        if not docs:
-            return "⚠️ No relevant content found."
-        context = "\n\n".join(d.page_content for d in docs)
-        filled = prompt.format(context=context, question=question)
-        resp = llm.invoke(filled)
-        return resp.content
-    except Exception as e:
-        return f"🚨 {e}"
+def retrieve_and_answer(question: str):
+    retrieved_docs = retriever.invoke(question)
+    context = "\n\n".join([d.page_content for d in retrieved_docs])
+    filled_prompt = prompt.format(context=context, question=question)
+    response = llm.invoke(filled_prompt)
+    return response.content
 
-# Gradio interface (the key piece HF needs)
-demo = gr.ChatInterface(fn=answer_fn, title="🧠 CaveBot", description="Ask about my markdown knowledge base")
+# --- Gradio wiring (ONLY change) ---
+def answer_fn(message, history):  # fixed: accept (message, history)
+    try:
+        return retrieve_and_answer(message)
+    except Exception as e:
+        return f"⚠️ Error: {e}"
+
+demo = gr.ChatInterface(
+    fn=answer_fn,
+    title="CaveBot",
+    description="Ask about my markdown knowledge base",
+    chatbot=gr.Chatbot(type="messages"),  # avoid 'tuples' deprecation
+)
 
 if __name__ == "__main__":
     demo.launch()
