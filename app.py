@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain.chains import create_retrieval_chain
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
 from langchain.docstore.document import Document
 
 # --- Configuration ---
@@ -31,12 +33,22 @@ vectordb = Chroma.from_documents(
 )
 
 retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-qa = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, chain_type="stuff")
+
+# --- Create a simple retrieval chain ---
+prompt = ChatPromptTemplate.from_template(
+    "Use the following context to answer concisely:\n\n{context}\n\nQuestion: {question}"
+)
+
+qa_chain = (
+    {"context": retriever | (lambda docs: "\n\n".join(d.page_content for d in docs)), "question": RunnablePassthrough()}
+    | prompt
+    | llm
+)
 
 print("✅ CaveBot ready!")
 while True:
     query = input("🔍 Ask: ")
     if query.lower() in ["exit", "quit"]:
         break
-    answer = qa.run(query)
-    print("💬 Answer:\n", answer)
+    answer = qa_chain.invoke({"question": query})
+    print("💬 Answer:\n", answer.content)
