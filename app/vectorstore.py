@@ -1,0 +1,1 @@
+print("vectorstore file created")
