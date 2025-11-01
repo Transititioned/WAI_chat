@@ -1,7 +1,3 @@
-# ==========================================================
-# CaveBot Modular Main
-# ==========================================================
-
 def main():
     print("🧠 Starting CaveBot modular build...")
 
@@ -33,5 +29,16 @@ def main():
     except Exception as e:
         print("❌ Error importing or initializing vectorstore:", e)
 
-    print("🚀 Initialization complete (loader + config + vectorstore test).")
+    # --- Step 4: LLM Engine Test ---
+    try:
+        from . import llm_engine
+        print("✅ LLM Engine module imported successfully.")
+        ok = llm_engine.test_llm_connection()
+        if ok:
+            print("🤖 LLM connection test passed successfully.")
+        else:
+            print("⚠️ LLM connection test failed.")
+    except Exception as e:
+        print("❌ Error importing or testing LLM engine:", e)
 
+    print("🚀 Initialization complete (loader + config + vectorstore + LLM test).")
