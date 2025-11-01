@@ -1,7 +1,5 @@
 # ==========================================================
 # CaveBot Modular Main
-# Version: 0.3.8-dev
-# Purpose: Entry point for modularised app, now testing loaders + config
 # ==========================================================
 
 def main():
@@ -23,4 +21,17 @@ def main():
         print("❌ Error importing config:", e)
         return
 
-    print("🚀 Initialization complete (loader + config test).")
+    # --- Step 3: Vectorstore ---
+    try:
+        from . import vectorstore
+        print("✅ Vectorstore module imported successfully.")
+        vectordb = vectorstore.init_vectorstore()
+        if vectordb:
+            print("🧠 Vectorstore is ready for use.")
+        else:
+            print("⚠️ Vectorstore initialization returned None.")
+    except Exception as e:
+        print("❌ Error importing or initializing vectorstore:", e)
+
+    print("🚀 Initialization complete (loader + config + vectorstore test).")
+
