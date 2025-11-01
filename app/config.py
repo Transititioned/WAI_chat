@@ -8,15 +8,27 @@ from pathlib import Path
 print("⚙️  Initializing configuration...")
 
 # ==========================================================
-# 1. Load API key (handles Hugging Face Secrets correctly)
+# 1. Load API key (robust fallback for Hugging Face)
 # ==========================================================
-# Hugging Face injects secrets into the live environment — dotenv not required.
-OPENAI_KEY = os.environ.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+def read_secret_key():
+    """Try all known places HF might store secrets."""
+    # 1️⃣ Standard env var
+    key = os.environ.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+    if key:
+        return key
 
-if OPENAI_KEY:
-    print("✅ OpenAI key loaded successfully.")
-else:
-    print("⚠️ No OpenAI API key found in environment.")
+    # 2️⃣ HF secret files (rare but happens in nested dirs)
+    secret_file = "/etc/secrets/OPENAI_API_KEY"
+    if os.path.exists(secret_file):
+        with open(secret_file, "r") as f:
+            return f.read().strip()
+
+    # 3️⃣ Absolute fallback
+    return None
+
+
+OPENAI_KEY = read_secret_key()
+
 
 # ==========================================================
 # 2. Directory configuration
