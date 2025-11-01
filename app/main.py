@@ -1,3 +1,5 @@
+import os
+
 def main():
     print("🧠 Starting CaveBot modular build...")
 
