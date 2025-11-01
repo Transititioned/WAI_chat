@@ -15,15 +15,15 @@ def main():
         print("❌ Error importing loaders:", e)
         return
 
-    # --- Step 2: (Commented out for progressive activation) ---
-    """
+    # --- Step 2: Config ---
     try:
         from . import config
         print("✅ Config module imported successfully.")
     except Exception as e:
         print("❌ Error importing config:", e)
+        return
 
-    try:
+    #try:
         from . import vectorstore
         print("✅ Vectorstore module imported successfully.")
     except Exception as e:
