@@ -42,3 +42,15 @@ def main():
         print("❌ Error importing or testing LLM engine:", e)
 
     print("🚀 Initialization complete (loader + config + vectorstore + LLM test).")
+
+
+        # --- Step 5: Launch Chatbot UI ---
+    try:
+        from . import chatbot
+        print("✅ Chatbot module imported successfully.")
+        demo = chatbot.init_chatbot()
+        print("🚀 Launching CaveBot interface...")
+        demo.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860)))
+    except Exception as e:
+        print("❌ Error launching chatbot:", e)
+
