@@ -55,7 +55,7 @@ def init_chatbot():
     with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
+        chatbot = gr.Chatbot(label="WorkFriend Conversation")
         user_input = gr.Textbox(placeholder="Ask me something...", label="Your question:")
         send_btn = gr.Button("Send", variant="primary")
 
