@@ -46,13 +46,7 @@ def add_voice_action(chatbot):
     mic_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
     return mic_btn
 
-
-# ----------------------------------------------------------
-# Combined Actions Loader (Minimalist Control Bar v2)
-# ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
-    """Returns user-interaction buttons: Retry (icon bar), Copy, and Voice Input."""
-    # Core retry function
     def retry_last(history):
         if not history:
             return history
@@ -64,15 +58,15 @@ def add_user_actions(chatbot, retrieve_fn):
             history[-1] = (last_user, f"⚠️ Retry failed: {e}")
         return history
 
-    # Hidden text buttons (still returned for compatibility)
-    retry_btn = gr.Button("Retry Last", variant="secondary", visible=False)
+    retry_btn = gr.Button("Retry Last", variant="secondary")
     retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
+
     copy_btn = add_copy_action(chatbot)
     mic_btn = add_voice_action(chatbot)
 
-    # 🌿 Minimal inline bar (centered under chatbot)
-    with gr.Row(elem_id="control-bar", equal_height=True):
-        retry_icon = gr.Button("🔁", variant="secondary", scale=0, elem_id="retry-icon")
+    # Visible control bar under chat
+    with gr.Row():
+        retry_icon = gr.Button("🔁", variant="secondary", scale=0, elem_id="retry-icon-bar")
         retry_icon.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
 
     return {
