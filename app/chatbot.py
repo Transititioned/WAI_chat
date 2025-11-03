@@ -28,4 +28,52 @@ def init_chatbot():
             continue
         chunks = [text[i:i + 1500] for i in range(0, len(text), 1500)]
         for chunk in chunks:
-            docs.append({"content": chunk, "metadata
+            docs.append({"content": chunk, "metadata": {"source": md_file.name}})
+
+    vectordb = Chroma.from_texts(
+        texts=[d["content"] for d in docs],
+        embedding=embedding,
+        metadatas=[d["metadata"] for d in docs],
+    )
+    retriever = vectordb.as_retriever(search_kwargs={"k": 3})
+
+    # --- Prompt template ---
+    prompt = ChatPromptTemplate.from_template(
+        "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
+    )
+
+    # --- Retrieval and LLM answer ---
+    def retrieve_and_answer(question: str):
+        retrieved_docs = retriever.invoke(question)
+        context = "\n\n".join([d.page_content for d in retrieved_docs])
+        filled_prompt = prompt.format(context=context, question=question)
+        response = llm.invoke(filled_prompt)
+        return response.content
+
+    # --- Chat handler ---
+    def answer_fn(message, history):
+        """Accepts (message, history) and returns updated chat history."""
+        try:
+            answer = retrieve_and_answer(message)
+            history = history + [(message, answer)]  # list of tuples
+            return history
+        except Exception as e:
+            error_msg = f"⚠️ Error: {e}"
+            history = history + [(message, error_msg)]
+            return history
+
+    # ==========================================================
+    # ✅ Gradio Blocks App with Retry Button
+    # ==========================================================
+    with gr.Blocks() as demo:
+        gr.Markdown("### 💬 WorkFriend Chatbot")
+
+        chatbot = gr.Chatbot(label="WorkFriend Conversation")
+        user_input = gr.Textbox(placeholder="Ask me something...", label="Your question:")
+        send_btn = gr.Button("Send", variant="primary")
+        retry_btn = gr.Button("Retry Last", variant="secondary")
+
+        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
+        retry_btn.click(fn=lambda history: history[:-1], inputs=chatbot, outputs=chatbot)
+
+    return demo
