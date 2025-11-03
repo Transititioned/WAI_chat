@@ -51,22 +51,32 @@ def add_voice_action(chatbot):
 # Combined Actions Loader (with control bar)
 # ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
-    """
-    Returns a dict of user-interaction buttons:
+    """Returns a dict of user-interaction buttons:
     Retry (icon version for now), Copy, and Voice Input.
     """
-    retry_btn = add_retry_action(chatbot, retrieve_fn)
+    # local retry action reused for icon
+    def retry_last(history):
+        if not history:
+            return history
+        last_user, _ = history[-1]
+        try:
+            new_answer = retrieve_fn(last_user)
+            history[-1] = (last_user, new_answer)
+        except Exception as e:
+            history[-1] = (last_user, f"⚠️ Retry failed: {e}")
+        return history
+
+    retry_btn = gr.Button("Retry Last", variant="secondary")
+    retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
+
     copy_btn = add_copy_action(chatbot)
     mic_btn = add_voice_action(chatbot)
 
-    # Control bar (retry icon for now)
+    # ✅ Simple control bar with icon bound to same retry_last function
     with gr.Row():
         gr.Markdown("### Controls")
         retry_icon = gr.Button("🔁", variant="secondary", elem_id="retry-icon", scale=0)
-        retry_icon.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
-
-    # Bind retry_icon to trigger the same function as retry_btn
-    retry_icon.click(fn=retry_btn.click.fn, inputs=chatbot, outputs=chatbot)
+        retry_icon.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
 
     return {
         "retry": retry_btn,
