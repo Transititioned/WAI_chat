@@ -2,13 +2,14 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Compatible with current Gradio + LangChain setup
+#   - Floating GPT-style UX buttons (Retry, Copy, Speak)
+#   - Compatible with Gradio 4.x
 # ==========================================================
 
 import gradio as gr
 
 # ----------------------------------------------------------
-# Retry Last Action
+# Core Retry Action
 # ----------------------------------------------------------
 def add_retry_action(chatbot, retrieve_fn):
     """Adds a Retry Last button that re-runs the last user message."""
@@ -23,43 +24,59 @@ def add_retry_action(chatbot, retrieve_fn):
             history[-1] = (last_user, f"⚠️ Retry failed: {e}")
         return history
 
-    retry_btn = gr.Button("Retry Last", variant="secondary")
+    retry_btn = gr.Button("Retry Last", visible=False)
     retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
     return retry_btn
 
 
 # ----------------------------------------------------------
-# Copy & Voice Actions (Dummy versions for now)
+# Copy + Speak placeholders
 # ----------------------------------------------------------
 def add_copy_action(chatbot):
-    """Adds a Copy button placeholder for future clipboard support."""
-    copy_btn = gr.Button("📋 Copy", variant="secondary")
-    # Placeholder: returns history untouched
+    copy_btn = gr.Button("Copy", visible=False)
     copy_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
     return copy_btn
 
 
 def add_voice_action(chatbot):
-    """Adds a Voice Input button placeholder for future mic capture."""
-    mic_btn = gr.Button("🎤 Speak", variant="secondary")
-    # Placeholder: no mic functionality yet
+    mic_btn = gr.Button("Speak", visible=False)
     mic_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
     return mic_btn
 
 
 # ----------------------------------------------------------
-# Combined Actions Loader
+# Combined Floating Actions
 # ----------------------------------------------------------
-def add_user_actions(chatbot, retrieve_fn):
+def add_floating_actions(chatbot, retrieve_fn):
     """
-    Returns a dict of user-interaction buttons:
-    Retry, Copy, and Voice Input.
+    Adds floating overlay controls (Retry, Copy, Speak) to the chatbot UI.
+    The buttons are rendered as HTML overlay but wired through hidden
+    Gradio button components.
     """
     retry_btn = add_retry_action(chatbot, retrieve_fn)
     copy_btn = add_copy_action(chatbot)
     mic_btn = add_voice_action(chatbot)
 
+    # Overlay HTML for floating GPT-style controls
+    overlay = gr.HTML(
+        """
+        <div style="
+            position:absolute;
+            bottom:90px;
+            right:20px;
+            display:flex;
+            gap:8px;
+            z-index:100;
+        ">
+            <button id='retry-float' class='gr-button gr-button-secondary' style='padding:4px 6px;' title='Retry'>🔁</button>
+            <button id='copy-float' class='gr-button gr-button-secondary' style='padding:4px 6px;' title='Copy'>📋</button>
+            <button id='mic-float' class='gr-button gr-button-secondary' style='padding:4px 6px;' title='Speak'>🎤</button>
+        </div>
+        """
+    )
+
     return {
+        "overlay": overlay,
         "retry": retry_btn,
         "copy": copy_btn,
         "mic": mic_btn,
