@@ -49,22 +49,20 @@ def init_chatbot():
         except Exception as e:
             return f"⚠️ Error: {e}"
 
-     with gr.Blocks() as demo:
-        chatbot = gr.Chatbot(label="WorkFriend", type="messages")
-        user_input = gr.Textbox(placeholder="Ask me something...")
+    # ==========================================================
+    # ✅ Gradio Blocks App with Retry Button
+    # ==========================================================
+    with gr.Blocks() as demo:
+        gr.Markdown("### 💬 WorkFriend Chatbot")
+
+        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
+        user_input = gr.Textbox(placeholder="Ask me something...", label="Your question:")
         send_btn = gr.Button("Send", variant="primary")
 
         # 🔹 Add retry button (native in Gradio 4.x)
         retry_btn = gr.Button("Retry Last", variant="secondary")
 
-        send_btn.click(answer_fn, [user_input, chatbot], chatbot)
+        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
         retry_btn.click(fn=lambda history: history[:-1], inputs=chatbot, outputs=chatbot)
-
-    demo = gr.ChatInterface(
-        fn=answer_fn,
-        title="CaveBot",
-        description="Ask questions on managing your projects",
-        chatbot=gr.Chatbot(type="messages"),
-    )
 
     return demo
