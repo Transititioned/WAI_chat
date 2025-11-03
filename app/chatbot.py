@@ -1,4 +1,13 @@
+# ==========================================================
 # app/chatbot.py
+# ----------------------------------------------------------
+# Purpose:
+#   WorkFriend Chatbot (CaveBot core)
+#   - Uses LangChain RAG over Markdown corpus
+#   - Adds working "Retry Last" feature
+#   - Safe with Hugging Face + Gradio 4.x
+# ==========================================================
+
 import gradio as gr
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -44,6 +53,7 @@ def init_chatbot():
 
     # --- Retrieval and LLM answer ---
     def retrieve_and_answer(question: str):
+        """Search vectorstore and get LLM response."""
         retrieved_docs = retriever.invoke(question)
         context = "\n\n".join([d.page_content for d in retrieved_docs])
         filled_prompt = prompt.format(context=context, question=question)
@@ -52,15 +62,28 @@ def init_chatbot():
 
     # --- Chat handler ---
     def answer_fn(message, history):
-        """Accepts (message, history) and returns updated chat history."""
+        """Handle new user message."""
         try:
             answer = retrieve_and_answer(message)
-            history = history + [(message, answer)]  # list of tuples
+            history = history + [(message, answer)]  # append new tuple
             return history
         except Exception as e:
             error_msg = f"⚠️ Error: {e}"
             history = history + [(message, error_msg)]
             return history
+
+    # --- Retry logic ---
+    def retry_last(history):
+        """Re-run the last user message through the LLM."""
+        if not history:
+            return history
+        last_user, _ = history[-1]
+        try:
+            new_answer = retrieve_and_answer(last_user)
+            history[-1] = (last_user, new_answer)
+        except Exception as e:
+            history[-1] = (last_user, f"⚠️ Retry failed: {e}")
+        return history
 
     # ==========================================================
     # ✅ Gradio Blocks App with Retry Button
@@ -74,6 +97,6 @@ def init_chatbot():
         retry_btn = gr.Button("Retry Last", variant="secondary")
 
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-        retry_btn.click(fn=lambda history: history[:-1], inputs=chatbot, outputs=chatbot)
+        retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
 
     return demo
