@@ -28,25 +28,13 @@ def add_retry_action(chatbot, retrieve_fn):
     return retry_btn
 
 
+import gradio as gr
+
 # ----------------------------------------------------------
-# Copy & Voice Actions (Dummy versions for now)
+# Retry Action
 # ----------------------------------------------------------
-def add_copy_action(chatbot):
-    """Adds a Copy button placeholder for future clipboard support."""
-    copy_btn = gr.Button("📋 Copy", variant="secondary")
-    # Placeholder: returns history untouched
-    copy_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
-    return copy_btn
-
-
-def add_voice_action(chatbot):
-    """Adds a Voice Input button placeholder for future mic capture."""
-    mic_btn = gr.Button("🎤 Speak", variant="secondary")
-    # Placeholder: no mic functionality yet
-    mic_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
-    return mic_btn
-
-def add_user_actions(chatbot, retrieve_fn):
+def add_retry_action(chatbot, retrieve_fn):
+    """Adds a working Retry button that reprocesses the last user message."""
     def retry_last(history):
         if not history:
             return history
@@ -60,18 +48,52 @@ def add_user_actions(chatbot, retrieve_fn):
 
     retry_btn = gr.Button("Retry Last", variant="secondary")
     retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
+    return retry_btn
 
+
+# ----------------------------------------------------------
+# Copy Action
+# ----------------------------------------------------------
+def add_copy_action(chatbot):
+    """
+    Adds a Copy button that copies the last assistant message
+    to the user's clipboard (client-side JS).
+    """
+    copy_btn = gr.Button("📋 Copy", variant="secondary")
+
+    copy_btn.click(
+        None,
+        _js="""
+        () => {
+            const chatbot = gradioApp().querySelector('gradio-chatbot');
+            if (!chatbot) return;
+            const messages = chatbot.querySelectorAll('.message');
+            if (!messages.length) return alert('No messages yet.');
+            // Find last bot message
+            const lastBot = Array.from(messages)
+                .reverse()
+                .find(m => m.classList.contains('bot'));
+            if (lastBot) {
+                const text = lastBot.innerText || '';
+                navigator.clipboard.writeText(text);
+            } else {
+                alert('No bot message found to copy.');
+            }
+        }
+        """
+    )
+    return copy_btn
+
+
+# ----------------------------------------------------------
+# Unified Helper
+# ----------------------------------------------------------
+def add_user_actions(chatbot, retrieve_fn):
+    retry_btn = add_retry_action(chatbot, retrieve_fn)
     copy_btn = add_copy_action(chatbot)
-    mic_btn = add_voice_action(chatbot)
 
-    # Visible control bar under chat
-    with gr.Row():
-        retry_icon = gr.Button("🔁", variant="secondary", scale=0, elem_id="retry-icon-bar")
-        retry_icon.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
-
+    # (Mic or other actions can be added later)
     return {
         "retry": retry_btn,
-        "retry_icon": retry_icon,
         "copy": copy_btn,
-        "mic": mic_btn,
     }
