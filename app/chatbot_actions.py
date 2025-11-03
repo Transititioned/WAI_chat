@@ -48,19 +48,29 @@ def add_voice_action(chatbot):
 
 
 # ----------------------------------------------------------
-# Combined Actions Loader
+# Combined Actions Loader (with control bar)
 # ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
     """
     Returns a dict of user-interaction buttons:
-    Retry, Copy, and Voice Input.
+    Retry (icon version for now), Copy, and Voice Input.
     """
     retry_btn = add_retry_action(chatbot, retrieve_fn)
     copy_btn = add_copy_action(chatbot)
     mic_btn = add_voice_action(chatbot)
 
+    # Control bar (retry icon for now)
+    with gr.Row():
+        gr.Markdown("### Controls")
+        retry_icon = gr.Button("🔁", variant="secondary", elem_id="retry-icon", scale=0)
+        retry_icon.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
+
+    # Bind retry_icon to trigger the same function as retry_btn
+    retry_icon.click(fn=retry_btn.click.fn, inputs=chatbot, outputs=chatbot)
+
     return {
         "retry": retry_btn,
+        "retry_icon": retry_icon,
         "copy": copy_btn,
         "mic": mic_btn,
     }
