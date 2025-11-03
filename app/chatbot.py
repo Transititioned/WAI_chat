@@ -14,6 +14,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
+from app.chatbot_actions import add_retry_action  # ✅ NEW IMPORT
 
 
 def init_chatbot():
@@ -72,19 +73,6 @@ def init_chatbot():
             history = history + [(message, error_msg)]
             return history
 
-    # --- Retry logic ---
-    def retry_last(history):
-        """Re-run the last user message through the LLM."""
-        if not history:
-            return history
-        last_user, _ = history[-1]
-        try:
-            new_answer = retrieve_and_answer(last_user)
-            history[-1] = (last_user, new_answer)
-        except Exception as e:
-            history[-1] = (last_user, f"⚠️ Retry failed: {e}")
-        return history
-
     # ==========================================================
     # ✅ Gradio Blocks App with Retry Button
     # ==========================================================
@@ -94,9 +82,10 @@ def init_chatbot():
         chatbot = gr.Chatbot(label="WorkFriend Conversation")
         user_input = gr.Textbox(placeholder="Ask me something...", label="Your question:")
         send_btn = gr.Button("Send", variant="primary")
-        retry_btn = gr.Button("Retry Last", variant="secondary")
+
+        # ✅ Replaced inline retry logic with modular import
+        retry_btn = add_retry_action(chatbot, retrieve_and_answer)
 
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-        retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
 
     return demo
