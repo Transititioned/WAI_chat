@@ -4,7 +4,7 @@
 # Purpose:
 #   WorkFriend Chatbot (CaveBot core)
 #   - Uses LangChain RAG over Markdown corpus
-#   - Adds working "Retry Last" feature
+#   - Modular user actions: Retry, Copy, Voice Input
 #   - Safe with Hugging Face + Gradio 4.x
 # ==========================================================
 
@@ -14,7 +14,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-from app.chatbot_actions import add_retry_action  # ✅ NEW IMPORT
+from app.chatbot_actions import add_user_actions  # ✅ Updated import
 
 
 def init_chatbot():
@@ -74,18 +74,30 @@ def init_chatbot():
             return history
 
     # ==========================================================
-    # ✅ Gradio Blocks App with Retry Button
+    # ✅ Gradio Blocks App with Modular Action Buttons
     # ==========================================================
     with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
         chatbot = gr.Chatbot(label="WorkFriend Conversation")
-        user_input = gr.Textbox(placeholder="Ask me something...", label="Your question:")
-        send_btn = gr.Button("Send", variant="primary")
 
-        # ✅ Replaced inline retry logic with modular import
-        retry_btn = add_retry_action(chatbot, retrieve_and_answer)
+        with gr.Row():
+            user_input = gr.Textbox(
+                placeholder="Ask me something...",
+                label="Your question:",
+                scale=4
+            )
 
+            with gr.Column(scale=1, min_width=150):
+                send_btn = gr.Button("Send", variant="primary")
+
+                # ✅ Modular actions loaded from chatbot_actions.py
+                actions = add_user_actions(chatbot, retrieve_and_answer)
+                retry_btn = actions["retry"]
+                copy_btn = actions["copy"]
+                mic_btn = actions["mic"]
+
+        # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
