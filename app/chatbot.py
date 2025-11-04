@@ -1,99 +1,152 @@
 # ==========================================================
-# app/chatbot.py
+# app/chatbot_actions.py
 # ----------------------------------------------------------
-# WorkFriend Chatbot (CaveBot core)
-# - LangChain RAG over Markdown corpus
-# - Modular user actions: Retry + Feedback
-# - HTML thumbs-up/down feedback (green/orange)
+# Modular chatbot actions for WorkFriend / CaveBot
+# ✅ Retry button aligned with input
+# ✅ Large thumbs (green/orange toggle, cross-browser consistent)
+# ✅ Clean, minimal UX
 # ==========================================================
 
 import gradio as gr
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-import os
-from pathlib import Path
-from app.chatbot_actions import add_user_actions
 
 
-def init_chatbot():
-    """Initialize and return the Gradio chatbot interface."""
-    # --- Paths and setup ---
-    ARTICLES_DIR = Path("content/articles")
-    if not ARTICLES_DIR.exists():
-        ARTICLES_DIR = Path(".")
-    INDEX_DIR = Path("index")
+# ----------------------------------------------------------
+# Retry Last Action
+# ----------------------------------------------------------
+def add_retry_action(chatbot, retrieve_fn):
+    """Adds a Retry Last button that re-runs the last user message."""
+    def retry_last(history):
+        if not history:
+            return history
+        last_user = None
 
-    # --- LLM setup ---
-    openai_key = os.getenv("OPENAI_API_KEY")
-    embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
+        # Handle both tuple and dict message formats
+        if isinstance(history[-1], tuple):
+            last_user, _ = history[-1]
+        elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
+            last_user = history[-1]["content"]
+        else:
+            for msg in reversed(history):
+                if isinstance(msg, dict) and msg.get("role") == "user":
+                    last_user = msg["content"]
+                    break
 
-    # --- Build vector store ---
-    docs = []
-    for md_file in ARTICLES_DIR.glob("*.md"):
-        text = md_file.read_text(encoding="utf-8").strip()
-        if not text:
-            continue
-        chunks = [text[i:i + 1500] for i in range(0, len(text), 1500)]
-        for chunk in chunks:
-            docs.append({"content": chunk, "metadata": {"source": md_file.name}})
+        if not last_user:
+            return history
 
-    vectordb = Chroma.from_texts(
-        texts=[d["content"] for d in docs],
-        embedding=embedding,
-        metadatas=[d["metadata"] for d in docs],
-    )
-    retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-
-    # --- Prompt template ---
-    prompt = ChatPromptTemplate.from_template(
-        "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
-    )
-
-    # --- Retrieval & Answer ---
-    def retrieve_and_answer(question: str):
-        retrieved_docs = retriever.invoke(question)
-        context = "\n\n".join([d.page_content for d in retrieved_docs])
-        filled_prompt = prompt.format(context=context, question=question)
-        response = llm.invoke(filled_prompt)
-        return response.content
-
-    # --- Chat handler ---
-    def answer_fn(message, history):
         try:
-            history = history + [{"role": "user", "content": message}]
-            answer = retrieve_and_answer(message)
-            history = history + [{"role": "assistant", "content": answer}]
-            return history
+            new_answer = retrieve_fn(last_user)
+            if isinstance(history[-1], dict):
+                history.append({"role": "assistant", "content": new_answer})
+            else:
+                history[-1] = (last_user, new_answer)
         except Exception as e:
-            history = history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
-            return history
+            if isinstance(history[-1], dict):
+                history.append({"role": "assistant", "content": f"⚠️ Retry failed: {e}"})
+            else:
+                history[-1] = (last_user, f"⚠️ Retry failed: {e}")
+        return history
 
-    # ==========================================================
-    # ✅ Gradio Blocks App
-    # ==========================================================
-    with gr.Blocks() as demo:
-        gr.Markdown("### 💬 WorkFriend Chatbot")
+    retry_btn = gr.Button("Retry Last", variant="secondary", elem_id="retry-button")
+    retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
+    return retry_btn
 
-        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        with gr.Row():
-            user_input = gr.Textbox(
-                placeholder="Ask me something...",
-                label="Your question:",
-                scale=4
-            )
+# ----------------------------------------------------------
+# Feedback (👍👎) Buttons
+# ----------------------------------------------------------
+def add_feedback_actions():
+    """Adds thumbs-up and thumbs-down with color toggle and consistent sizing."""
+    css = """
+    <style>
+    /* Alignment tweaks */
+    textarea, input[type="text"] {
+        margin-bottom: 10px !important;
+    }
 
-            with gr.Column(scale=1, min_width=150):
-                send_btn = gr.Button("Send", variant="primary")
+    #retry-button {
+        margin-top: 6px !important;
+    }
 
-                # ✅ Modular actions (only Retry + Feedback now)
-                actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions["retry"]
-                feedback = actions["feedback"]
+    .feedback-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 3rem;
+        margin-top: 18px;
+    }
 
-        # --- Bind send button ---
-        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
+    .thumb-btn {
+        font-size: 6rem;                     /* Large thumbs */
+        line-height: 1;
+        width: 100px;                        /* Fixed visual box */
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.25s ease, filter 0.25s ease;
+        user-select: none;
+        font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+    }
 
-    return demo
+    .thumb-btn:hover {
+        transform: scale(1.15);
+        filter: brightness(1.25);
+    }
+
+    .thumb-up.active {
+        color: #2ECC71 !important;            /* Green */
+        text-shadow: 0 0 10px #2ECC71;
+    }
+
+    .thumb-down.active {
+        color: #FF7F50 !important;            /* Orange */
+        text-shadow: 0 0 10px #FF7F50;
+    }
+    </style>
+    """
+
+    html = """
+    <div style='text-align:center; opacity:0.85; font-size:1rem;'>Did this help?</div>
+    <div class="feedback-container">
+        <button class="thumb-btn thumb-up" id="thumbUp">👍</button>
+        <button class="thumb-btn thumb-down" id="thumbDown">👎</button>
+    </div>
+
+    <script>
+    const up = document.getElementById("thumbUp");
+    const down = document.getElementById("thumbDown");
+    if (up && down) {
+        up.onclick = () => {
+            up.classList.toggle("active");
+            down.classList.remove("active");
+        };
+        down.onclick = () => {
+            down.classList.toggle("active");
+            up.classList.remove("active");
+        };
+    }
+    </script>
+    """
+
+    return gr.HTML(css + html)
+
+
+# ----------------------------------------------------------
+# Combined Actions Loader
+# ----------------------------------------------------------
+def add_user_actions(chatbot, retrieve_fn):
+    """
+    Returns a dict of all active user-interaction buttons:
+    Retry + Feedback (👍👎)
+    """
+    retry_btn = add_retry_action(chatbot, retrieve_fn)
+    feedback = add_feedback_actions()
+
+    return {
+        "retry": retry_btn,
+        "feedback": feedback,
+    }
