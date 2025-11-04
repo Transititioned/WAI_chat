@@ -29,13 +29,39 @@ def add_retry_action(chatbot, retrieve_fn):
 
 
 # ----------------------------------------------------------
-# Copy & Voice Actions (Dummy versions for now)
+# Copy & Voice Actions (Copy now functional)
 # ----------------------------------------------------------
 def add_copy_action(chatbot):
-    """Adds a Copy button placeholder for future clipboard support."""
+    """Adds a Copy button that copies the last assistant message to clipboard."""
     copy_btn = gr.Button("📋 Copy", variant="secondary")
-    # Placeholder: returns history untouched
-    copy_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
+
+    # ✅ Minimal safe JS: copies text of last bot reply only
+    copy_btn.click(
+        None,
+        _js="""
+        () => {
+            const chatbot = gradioApp().querySelector('gradio-chatbot');
+            if (!chatbot) { alert('Chat window not found.'); return; }
+
+            const messages = chatbot.querySelectorAll('.message');
+            if (!messages.length) { alert('No messages to copy.'); return; }
+
+            // Find the last assistant (bot) message
+            const lastBot = Array.from(messages)
+                .reverse()
+                .find(m => m.classList.contains('bot'));
+
+            if (lastBot) {
+                const text = lastBot.innerText || '';
+                navigator.clipboard.writeText(text);
+                alert('✅ Last answer copied to clipboard!');
+            } else {
+                alert('No assistant message found to copy.');
+            }
+        }
+        """
+    )
+
     return copy_btn
 
 
