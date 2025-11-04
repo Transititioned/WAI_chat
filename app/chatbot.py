@@ -62,11 +62,16 @@ def init_chatbot():
     def answer_fn(message, history):
         """Handle user message."""
         try:
+            # Append user message
+            history = history + [{"role": "user", "content": message}]
             answer = retrieve_and_answer(message)
-            history = history + [(message, answer)]
+            # Append assistant message
+            history = history + [{"role": "assistant", "content": answer}]
             return history
         except Exception as e:
-            return history + [(message, f"⚠️ Error: {e}")]
+            error_msg = f"⚠️ Error: {e}"
+            history = history + [{"role": "assistant", "content": error_msg}]
+            return history
 
     # ==========================================================
     # ✅ Gradio Blocks App
