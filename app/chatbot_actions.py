@@ -3,13 +3,16 @@
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
 # ✅ Retry button aligned with input
-# ✅ Full-size thumbs (6rem)
-# ✅ Clean visual (no borders, balanced spacing)
+# ✅ Large thumbs (green/orange toggle, cross-browser consistent)
+# ✅ Clean, minimal UX
 # ==========================================================
 
 import gradio as gr
 
 
+# ----------------------------------------------------------
+# Retry Last Action
+# ----------------------------------------------------------
 def add_retry_action(chatbot, retrieve_fn):
     """Adds a Retry Last button that re-runs the last user message."""
     def retry_last(history):
@@ -17,6 +20,7 @@ def add_retry_action(chatbot, retrieve_fn):
             return history
         last_user = None
 
+        # Handle both tuple and dict message formats
         if isinstance(history[-1], tuple):
             last_user, _ = history[-1]
         elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
@@ -48,11 +52,14 @@ def add_retry_action(chatbot, retrieve_fn):
     return retry_btn
 
 
+# ----------------------------------------------------------
+# Feedback (👍👎) Buttons
+# ----------------------------------------------------------
 def add_feedback_actions():
-    """Adds thumbs-up and thumbs-down with color toggle."""
+    """Adds thumbs-up and thumbs-down with color toggle and consistent sizing."""
     css = """
     <style>
-    /* ✅ Minor nudge for input alignment */
+    /* Alignment tweaks */
     textarea, input[type="text"] {
         margin-bottom: 10px !important;
     }
@@ -65,38 +72,39 @@ def add_feedback_actions():
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 2.5rem;
-        margin-top: 14px;
+        gap: 3rem;
+        margin-top: 18px;
     }
 
     .thumb-btn {
-        font-size: 6rem;                 /* ✅ Large readable thumbs */
+        font-size: 6rem;                     /* Large thumbs */
+        line-height: 1;
+        width: 100px;                        /* Fixed visual box */
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         background: none;
         border: none;
         cursor: pointer;
         transition: transform 0.25s ease, filter 0.25s ease;
-        line-height: 1;
         user-select: none;
+        font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
     }
 
     .thumb-btn:hover {
-        transform: scale(1.25);
-        filter: brightness(1.15);
+        transform: scale(1.15);
+        filter: brightness(1.25);
     }
 
     .thumb-up.active {
-        color: #2ECC71;                  /* ✅ Bright green */
-        filter: drop-shadow(0 0 8px #2ECC71);
+        color: #2ECC71 !important;            /* Green */
+        text-shadow: 0 0 10px #2ECC71;
     }
 
     .thumb-down.active {
-        color: #FF7F50;                  /* ✅ Coral orange */
-        filter: drop-shadow(0 0 8px #FF7F50);
-    }
-
-    /* Fallback for emoji rendering */
-    button.thumb-btn {
-        font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+        color: #FF7F50 !important;            /* Orange */
+        text-shadow: 0 0 10px #FF7F50;
     }
     </style>
     """
@@ -127,8 +135,14 @@ def add_feedback_actions():
     return gr.HTML(css + html)
 
 
+# ----------------------------------------------------------
+# Combined Actions Loader
+# ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
-    """Returns dict of all active user-interaction buttons."""
+    """
+    Returns a dict of all active user-interaction buttons:
+    Retry + Feedback (👍👎)
+    """
     retry_btn = add_retry_action(chatbot, retrieve_fn)
     feedback = add_feedback_actions()
 
