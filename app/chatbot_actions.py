@@ -3,11 +3,10 @@
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
 # ✅ Compatible with current Gradio + LangChain setup
-# ✅ Hugging Face Spaces safe (no _js argument)
+# ✅ Adds visual thumbs-up / thumbs-down feedback toggle
 # ==========================================================
 
 import gradio as gr
-
 
 # ----------------------------------------------------------
 # Retry Last Action
@@ -31,37 +30,54 @@ def add_retry_action(chatbot, retrieve_fn):
 
 
 # ----------------------------------------------------------
-# Copy Action (Spaces-safe version)
+# Copy Action (placeholder)
 # ----------------------------------------------------------
 def add_copy_action(chatbot):
-    """
-    Adds a Copy button that reveals the last assistant message
-    in a read-only textbox for manual copy (sandbox-safe).
-    """
+    """Adds a Copy button placeholder for clipboard copy."""
     copy_btn = gr.Button("📋 Copy", variant="secondary")
-    copy_box = gr.Textbox(label="Copied text", visible=False, interactive=False)
-
-    def extract_last(history):
-        """Extracts last assistant message for manual copy."""
-        if not history:
-            return gr.update(value="No messages yet.", visible=True)
-        last_user, last_bot = history[-1]
-        if not last_bot:
-            return gr.update(value="No assistant message yet.", visible=True)
-        return gr.update(value=last_bot, visible=True)
-
-    copy_btn.click(fn=extract_last, inputs=chatbot, outputs=copy_box)
-    return copy_btn, copy_box
+    copy_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
+    return copy_btn
 
 
 # ----------------------------------------------------------
-# Voice Input Placeholder
+# Voice Input (placeholder)
 # ----------------------------------------------------------
 def add_voice_action(chatbot):
-    """Adds a Voice Input button placeholder for future mic capture."""
+    """Adds a Voice Input button placeholder for mic capture."""
     mic_btn = gr.Button("🎤 Speak", variant="secondary")
     mic_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
     return mic_btn
+
+
+# ----------------------------------------------------------
+# Feedback (👍👎) Buttons
+# ----------------------------------------------------------
+def add_feedback_actions():
+    """Adds thumbs-up and thumbs-down buttons with simple toggle visual."""
+    with gr.Row(equal_height=True):
+        gr.Markdown("<div style='text-align:center; opacity:0.75;'>Did this help?</div>")
+
+    with gr.Row(equal_height=True):
+        like_btn = gr.Button("👍", variant="secondary", scale=1)
+        dislike_btn = gr.Button("👎", variant="secondary", scale=1)
+
+        def toggle_feedback(choice):
+            if choice == "up":
+                return (
+                    gr.Button.update(variant="primary"),
+                    gr.Button.update(variant="secondary")
+                )
+            else:
+                return (
+                    gr.Button.update(variant="secondary"),
+                    gr.Button.update(variant="primary")
+                )
+
+        like_btn.click(fn=lambda: toggle_feedback("up"), outputs=[like_btn, dislike_btn])
+        dislike_btn.click(fn=lambda: toggle_feedback("down"), outputs=[like_btn, dislike_btn])
+
+    # return a lightweight dict for compatibility
+    return {"like": like_btn, "dislike": dislike_btn}
 
 
 # ----------------------------------------------------------
@@ -69,16 +85,17 @@ def add_voice_action(chatbot):
 # ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
     """
-    Returns a dict of user-interaction buttons and UI elements:
-    Retry, Copy (with copy_box), and Voice Input.
+    Returns a dict of all user-interaction buttons:
+    Retry, Copy, Mic, and Feedback (👍👎).
     """
     retry_btn = add_retry_action(chatbot, retrieve_fn)
-    copy_btn, copy_box = add_copy_action(chatbot)
+    copy_btn = add_copy_action(chatbot)
     mic_btn = add_voice_action(chatbot)
+    feedback = add_feedback_actions() or {}
 
     return {
         "retry": retry_btn,
         "copy": copy_btn,
-        "copy_box": copy_box,
         "mic": mic_btn,
+        "feedback": feedback,
     }
