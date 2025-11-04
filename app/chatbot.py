@@ -102,3 +102,29 @@ def init_chatbot():
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
+
+
+    # ----------------------------------------------------------
+# Feedback Buttons (visual only)
+# ----------------------------------------------------------
+def add_feedback_actions():
+    """Thumbs Up / Down buttons that toggle colour locally."""
+    thumbs_up = gr.Button("👍", variant="secondary")
+    thumbs_down = gr.Button("👎", variant="secondary")
+
+    def toggle_variant(current):
+        return "primary" if current == "secondary" else "secondary"
+
+    thumbs_up.click(
+        fn=lambda: gr.update(variant=toggle_variant(thumbs_up.variant)),
+        inputs=[],
+        outputs=thumbs_up
+    )
+
+    thumbs_down.click(
+        fn=lambda: gr.update(variant=toggle_variant(thumbs_down.variant)),
+        inputs=[],
+        outputs=thumbs_down
+    )
+
+    return thumbs_up, thumbs_down
