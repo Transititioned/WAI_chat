@@ -5,6 +5,7 @@
 #   WorkFriend Chatbot (CaveBot core)
 #   - Uses LangChain RAG over Markdown corpus
 #   - Modular user actions: Retry, Copy, Voice Input
+#   - Adds simple thumbs-up / thumbs-down feedback (local only)
 #   - Safe with Hugging Face + Gradio 4.x
 # ==========================================================
 
@@ -14,7 +15,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-from app.chatbot_actions import add_user_actions  # ✅ Modular import
+from app.chatbot_actions import add_user_actions  # ✅ unchanged import
 
 
 def init_chatbot():
@@ -96,35 +97,33 @@ def init_chatbot():
                 retry_btn = actions["retry"]
                 copy_btn = actions["copy"]
                 mic_btn = actions["mic"]
-                copy_box = actions["copy_box"]  # ✅ Added: shows text for manual copy
+
+        # ==========================================================
+        # 👍 👎 Feedback Buttons (Local Toggle Only)
+        # ==========================================================
+        with gr.Row():
+            like_btn = gr.Button("👍", variant="secondary")
+            dislike_btn = gr.Button("👎", variant="secondary")
+
+        # --- Feedback toggle logic (purely cosmetic) ---
+        def toggle_feedback(state, which):
+            """Switch button colors to simulate feedback selection."""
+            if which == "up":
+                return gr.Button.update(variant="primary"), gr.Button.update(variant="secondary")
+            elif which == "down":
+                return gr.Button.update(variant="secondary"), gr.Button.update(variant="primary")
+            else:
+                return state
+
+        like_btn.click(lambda: ("up"), None, [like_btn, dislike_btn],
+                       _js=None, outputs=[like_btn, dislike_btn],
+                       fn=lambda _: toggle_feedback(_, "up"))
+
+        dislike_btn.click(lambda: ("down"), None, [like_btn, dislike_btn],
+                          _js=None, outputs=[like_btn, dislike_btn],
+                          fn=lambda _: toggle_feedback(_, "down"))
 
         # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
-
-
-    # ----------------------------------------------------------
-# Feedback Buttons (visual only)
-# ----------------------------------------------------------
-def add_feedback_actions():
-    """Thumbs Up / Down buttons that toggle colour locally."""
-    thumbs_up = gr.Button("👍", variant="secondary")
-    thumbs_down = gr.Button("👎", variant="secondary")
-
-    def toggle_variant(current):
-        return "primary" if current == "secondary" else "secondary"
-
-    thumbs_up.click(
-        fn=lambda: gr.update(variant=toggle_variant(thumbs_up.variant)),
-        inputs=[],
-        outputs=thumbs_up
-    )
-
-    thumbs_down.click(
-        fn=lambda: gr.update(variant=toggle_variant(thumbs_down.variant)),
-        inputs=[],
-        outputs=thumbs_down
-    )
-
-    return thumbs_up, thumbs_down
