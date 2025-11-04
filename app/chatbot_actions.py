@@ -3,8 +3,8 @@
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
 # ✅ Retry button aligned with input
-# ✅ SVG thumbs-up / thumbs-down (consistent size & color toggle)
-# ✅ Clean UI and CSS animations
+# ✅ SVG thumbs-up / thumbs-down (balanced size, subtle glow)
+# ✅ Clean, minimal UX
 # ==========================================================
 
 import gradio as gr
@@ -20,7 +20,7 @@ def add_retry_action(chatbot, retrieve_fn):
             return history
         last_user = None
 
-        # Handle both tuple and dict message formats
+        # Handle both tuple and dict formats
         if isinstance(history[-1], tuple):
             last_user, _ = history[-1]
         elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
@@ -53,10 +53,10 @@ def add_retry_action(chatbot, retrieve_fn):
 
 
 # ----------------------------------------------------------
-# Feedback (👍👎) SVG Buttons
+# Feedback (👍👎) SVG Buttons – refined sizing
 # ----------------------------------------------------------
 def add_feedback_actions():
-    """Adds thumbs-up and thumbs-down SVG buttons with color toggle and consistent sizing."""
+    """Adds balanced thumbs-up/down SVG buttons with toggle and glow."""
     css = """
     <style>
     #retry-button {
@@ -67,13 +67,13 @@ def add_feedback_actions():
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 3rem;
-        margin-top: 18px;
+        gap: 2rem;
+        margin-top: 16px;
     }
 
     .thumb-btn {
-        width: 90px;
-        height: 90px;
+        width: 55px;
+        height: 55px;
         background: none;
         border: none;
         cursor: pointer;
@@ -83,22 +83,22 @@ def add_feedback_actions():
     .thumb-btn svg {
         width: 100%;
         height: 100%;
-        fill: #999;
+        fill: #aaa;
         transition: fill 0.3s ease, filter 0.3s ease;
     }
 
     .thumb-btn:hover {
-        transform: scale(1.15);
+        transform: scale(1.1);
     }
 
     .thumb-up.active svg {
         fill: #2ECC71; /* Green */
-        filter: drop-shadow(0 0 8px #2ECC71);
+        filter: drop-shadow(0 0 5px #2ECC71);
     }
 
     .thumb-down.active svg {
         fill: #FF7F50; /* Orange */
-        filter: drop-shadow(0 0 8px #FF7F50);
+        filter: drop-shadow(0 0 5px #FF7F50);
     }
     </style>
     """
