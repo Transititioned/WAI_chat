@@ -2,9 +2,9 @@
 # app/chatbot.py
 # ----------------------------------------------------------
 # WorkFriend Chatbot (CaveBot core)
-#   - LangChain RAG over Markdown corpus
-#   - Modular user actions: Retry, Copy, Voice Input
-#   - Single feedback section (thumbs-up/down, visual toggle)
+# - LangChain RAG over Markdown corpus
+# - Modular user actions: Retry, Copy, Voice Input
+# - HTML thumbs-up/down feedback (green/orange)
 # ==========================================================
 
 import gradio as gr
@@ -51,26 +51,23 @@ def init_chatbot():
         "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
     )
 
+    # --- Retrieval & Answer ---
     def retrieve_and_answer(question: str):
-        """Retrieve context and generate LLM answer."""
         retrieved_docs = retriever.invoke(question)
         context = "\n\n".join([d.page_content for d in retrieved_docs])
         filled_prompt = prompt.format(context=context, question=question)
         response = llm.invoke(filled_prompt)
         return response.content
 
+    # --- Chat handler ---
     def answer_fn(message, history):
-        """Handle user message."""
         try:
-            # Append user message
             history = history + [{"role": "user", "content": message}]
             answer = retrieve_and_answer(message)
-            # Append assistant message
             history = history + [{"role": "assistant", "content": answer}]
             return history
         except Exception as e:
-            error_msg = f"⚠️ Error: {e}"
-            history = history + [{"role": "assistant", "content": error_msg}]
+            history = history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
             return history
 
     # ==========================================================
@@ -91,14 +88,14 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # Modular user actions (including thumbs)
+                # Modular user actions
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
                 copy_btn = actions["copy"]
                 mic_btn = actions["mic"]
-                feedback = actions["feedback"]  # 👍👎 now managed from user_actions.py
+                feedback = actions["feedback"]  # ✅ HTML thumbs feedback block
 
-        # --- Send button event binding
+        # --- Bind send button ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
