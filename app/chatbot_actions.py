@@ -2,7 +2,8 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Adds visual thumbs-up (green) / thumbs-down (orange) feedback
+# ✅ Retry / Copy / Speak
+# ✅ Visual feedback: 👍 green, 👎 orange
 # ==========================================================
 
 import gradio as gr
@@ -70,26 +71,31 @@ def add_voice_action(chatbot):
 
 
 # ----------------------------------------------------------
-# Feedback (👍👎) Buttons
+# Feedback (👍👎) Buttons with forced colour toggle
 # ----------------------------------------------------------
 def add_feedback_actions():
-    """Adds thumbs-up and thumbs-down buttons with clear colour toggle."""
+    """Adds thumbs-up and thumbs-down buttons with strong colour feedback."""
     with gr.Column():
         gr.Markdown("<div style='text-align:center; opacity:0.75;'>Did this help?</div>")
-        like_btn = gr.Button("👍", variant="secondary", scale=1)
-        dislike_btn = gr.Button("👎", variant="secondary", scale=1)
+        like_btn = gr.Button("👍", elem_id="thumb_up_btn", variant="secondary", scale=1)
+        dislike_btn = gr.Button("👎", elem_id="thumb_down_btn", variant="secondary", scale=1)
+
+    # internal toggle tracker
+    state = {"selected": None}
 
     def toggle_feedback(choice):
-        """Colour change: green for 👍, orange for 👎."""
+        """Switch CSS classes to simulate on/off colour."""
         if choice == "up":
+            state["selected"] = "up"
             return (
-                gr.Button.update(style={"background-color": "#3CB371", "color": "white"}),  # Green
-                gr.Button.update(style={"background-color": "", "color": ""}),
+                gr.Button.update(elem_classes=["active-thumb-up"]),
+                gr.Button.update(elem_classes=[]),
             )
         else:
+            state["selected"] = "down"
             return (
-                gr.Button.update(style={"background-color": "", "color": ""}),
-                gr.Button.update(style={"background-color": "#FF8C00", "color": "white"}),  # Orange
+                gr.Button.update(elem_classes=[]),
+                gr.Button.update(elem_classes=["active-thumb-down"]),
             )
 
     like_btn.click(fn=lambda: toggle_feedback("up"), outputs=[like_btn, dislike_btn])
