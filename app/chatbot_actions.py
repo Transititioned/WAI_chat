@@ -2,8 +2,8 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Retry button aligned with textbox
-# ✅ Big thumbs (green/orange) with clean CSS
+# ✅ Retry button aligned with input
+# ✅ Huge thumbs (green/orange) and visual hover feedback
 # ==========================================================
 
 import gradio as gr
@@ -19,7 +19,6 @@ def add_retry_action(chatbot, retrieve_fn):
             return history
         last_user = None
 
-        # Identify the last user message
         if isinstance(history[-1], tuple):
             last_user, _ = history[-1]
         elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
@@ -46,57 +45,67 @@ def add_retry_action(chatbot, retrieve_fn):
                 history[-1] = (last_user, f"⚠️ Retry failed: {e}")
         return history
 
-    # ✅ Safe baseline alignment via CSS only
     retry_btn = gr.Button("Retry Last", variant="secondary", elem_id="retry-button")
     retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
     return retry_btn
 
 
 # ----------------------------------------------------------
-# Feedback (👍👎) Buttons — HTML version (bigger + aligned)
+# Feedback (👍👎) Buttons — CSS-only, big, aligned
 # ----------------------------------------------------------
 def add_feedback_actions():
-    """Adds thumbs-up and thumbs-down with color toggle."""
+    """Adds thumbs-up and thumbs-down with strong visual toggle."""
     css = """
     <style>
-    #retry-button {
-        margin-top: 18px !important;   /* ✅ Aligns visually with input box */
+    /* ✅ Lower the textbox slightly so it's level with Retry */
+    textarea, input[type="text"] {
+        margin-bottom: 12px !important;
     }
+
+    #retry-button {
+        margin-top: 8px !important;   /* Tightens vertical alignment */
+    }
+
     .feedback-container {
         display: flex;
-        justify-content: space-around;
+        justify-content: center;
         align-items: center;
-        gap: 1rem;
-        margin-top: 12px;
+        gap: 2rem;
+        margin-top: 14px;
     }
+
     .thumb-btn {
-        font-size: 3.2rem;             /* ✅ Bigger thumbs */
-        padding: 12px 32px;
+        font-size: 4rem;                /* ✅ Big, visible thumbs */
+        padding: 14px 34px;
         border-radius: 18px;
-        border: 1px solid #ccc;
-        background: #f7f7f7;
+        border: 2px solid #bbb;
+        background: #f5f5f5;
         cursor: pointer;
         transition: all 0.25s ease-in-out;
         user-select: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
     .thumb-btn:hover {
-        transform: scale(1.18);
+        transform: scale(1.2);
     }
+
     .thumb-up.active {
-        background-color: #2ECC71 !important;  /* Green for Like */
+        background-color: #28a745 !important;  /* ✅ Green */
         color: white !important;
-        border: none;
+        border: 2px solid #1e7e34;
     }
+
     .thumb-down.active {
-        background-color: #FF7F50 !important;  /* Orange for Dislike */
+        background-color: #ff8c00 !important;  /* ✅ Orange */
         color: white !important;
-        border: none;
+        border: 2px solid #cc7000;
     }
     </style>
     """
 
     html = """
-    <div style='text-align:center; opacity:0.75; font-size:1rem;'>Did this help?</div>
+    <div style='text-align:center; opacity:0.8; font-size:1rem;'>Did this help?</div>
     <div class="feedback-container">
         <button class="thumb-btn thumb-up" id="thumbUp">👍</button>
         <button class="thumb-btn thumb-down" id="thumbDown">👎</button>
