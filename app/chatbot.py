@@ -4,18 +4,17 @@
 # Purpose:
 #   WorkFriend Chatbot (CaveBot core)
 #   - Uses LangChain RAG over Markdown corpus
-#   - Modular user actions: Retry, Copy
-#   - Lazy import to avoid circular-import errors on Spaces
+#   - Modular user actions: Retry, Copy, Voice Input
 #   - Safe with Hugging Face + Gradio 4.x
 # ==========================================================
 
 import gradio as gr
-import importlib        # ✅ lazy import safeguard
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
+from app.chatbot_actions import add_user_actions  # ✅ Updated import
 
 
 def init_chatbot():
@@ -80,8 +79,7 @@ def init_chatbot():
     with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        # Use 'messages' type to avoid tuple deprecation warning
-        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
+        chatbot = gr.Chatbot(label="WorkFriend Conversation")
 
         with gr.Row():
             user_input = gr.Textbox(
@@ -93,12 +91,11 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Lazy import to prevent circular-import issue
-                chatbot_actions = importlib.import_module("app.chatbot_actions")
-                actions = chatbot_actions.add_user_actions(chatbot, retrieve_and_answer)
+                # ✅ Modular actions loaded from chatbot_actions.py
+                actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
                 copy_btn = actions["copy"]
-                # mic intentionally omitted
+                mic_btn = actions["mic"]
 
         # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
