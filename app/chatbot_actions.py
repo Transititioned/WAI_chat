@@ -2,8 +2,8 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Retry button (aligned with input box)
-# ✅ HTML feedback thumbs (bigger, colored)
+# ✅ Retry button aligned with textbox
+# ✅ Big thumbs (green/orange) with clean CSS
 # ==========================================================
 
 import gradio as gr
@@ -19,6 +19,7 @@ def add_retry_action(chatbot, retrieve_fn):
             return history
         last_user = None
 
+        # Identify the last user message
         if isinstance(history[-1], tuple):
             last_user, _ = history[-1]
         elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
@@ -45,43 +46,41 @@ def add_retry_action(chatbot, retrieve_fn):
                 history[-1] = (last_user, f"⚠️ Retry failed: {e}")
         return history
 
-    # ✅ Aligned baseline styling
-    retry_btn = gr.Button("Retry Last", variant="secondary")
-    retry_btn.style(container=True)
-    retry_btn.elem_id = "retry-button"
-
-    return retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
+    # ✅ Safe baseline alignment via CSS only
+    retry_btn = gr.Button("Retry Last", variant="secondary", elem_id="retry-button")
+    retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
+    return retry_btn
 
 
 # ----------------------------------------------------------
 # Feedback (👍👎) Buttons — HTML version (bigger + aligned)
 # ----------------------------------------------------------
 def add_feedback_actions():
-    """Adds thumbs-up and thumbs-down with working colour toggle."""
+    """Adds thumbs-up and thumbs-down with color toggle."""
     css = """
     <style>
     #retry-button {
-        margin-top: 16px !important;     /* ✅ Aligns with textbox bottom */
+        margin-top: 18px !important;   /* ✅ Aligns visually with input box */
     }
     .feedback-container {
         display: flex;
         justify-content: space-around;
         align-items: center;
         gap: 1rem;
-        margin-top: 10px;
+        margin-top: 12px;
     }
     .thumb-btn {
-        font-size: 2.8rem;               /* ✅ Bigger thumbs */
-        padding: 12px 30px;
-        border-radius: 16px;
-        border: 1px solid #bbb;
+        font-size: 3.2rem;             /* ✅ Bigger thumbs */
+        padding: 12px 32px;
+        border-radius: 18px;
+        border: 1px solid #ccc;
         background: #f7f7f7;
         cursor: pointer;
         transition: all 0.25s ease-in-out;
         user-select: none;
     }
     .thumb-btn:hover {
-        transform: scale(1.15);
+        transform: scale(1.18);
     }
     .thumb-up.active {
         background-color: #2ECC71 !important;  /* Green for Like */
