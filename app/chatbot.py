@@ -120,3 +120,33 @@ def init_chatbot():
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
+
+
+        # --- Event bindings ---
+        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
+
+        # ----------------------------------------------------------
+        # Feedback row — render AFTER other controls, inside layout
+        # ----------------------------------------------------------
+        with gr.Row():
+            gr.Markdown("<div style='text-align:center; opacity:0.75;'>Did this help?</div>")
+
+        with gr.Row():
+            like_btn = gr.Button("👍", variant="secondary", scale=1)
+            dislike_btn = gr.Button("👎", variant="secondary", scale=1)
+
+            def toggle_feedback(choice):
+                if choice == "up":
+                    return (
+                        gr.Button.update(variant="primary"),
+                        gr.Button.update(variant="secondary"),
+                    )
+                else:
+                    return (
+                        gr.Button.update(variant="secondary"),
+                        gr.Button.update(variant="primary"),
+                    )
+
+            like_btn.click(fn=lambda: toggle_feedback("up"), outputs=[like_btn, dislike_btn])
+            dislike_btn.click(fn=lambda: toggle_feedback("down"), outputs=[like_btn, dislike_btn])
+
