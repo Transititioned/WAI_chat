@@ -4,10 +4,8 @@
 # Purpose:
 #   WorkFriend Chatbot (CaveBot core)
 #   - Uses LangChain RAG over Markdown corpus
-#   - Modular user actions: Retry, Copy, Mic
-#   - Includes thumbs-up / thumbs-down feedback toggle
+#   - Modular user actions: Retry, Copy, Mic, Feedback
 # ==========================================================
-#
 
 import gradio as gr
 from langchain_community.vectorstores import Chroma
@@ -111,10 +109,10 @@ def init_chatbot():
 
                 # Modular user actions
                 actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions["retry"]
-                copy_btn = actions["copy"]
-                mic_btn = actions["mic"]
-                feedback = actions["feedback"]
+                retry_btn = actions.get("retry")
+                copy_btn = actions.get("copy")
+                mic_btn = actions.get("mic")
+                feedback = actions.get("feedback", None)
 
         # ----------------------------------------------------------
         # Event bindings
