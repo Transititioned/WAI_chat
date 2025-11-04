@@ -2,9 +2,8 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Retry button (functional)
-# ✅ HTML feedback thumbs (bigger, color toggle)
-# ✅ Copy / Speak commented out (for future use)
+# ✅ Retry button (aligned with input box)
+# ✅ HTML feedback thumbs (bigger, colored)
 # ==========================================================
 
 import gradio as gr
@@ -20,7 +19,6 @@ def add_retry_action(chatbot, retrieve_fn):
             return history
         last_user = None
 
-        # Handle both tuple and message-dict chat formats
         if isinstance(history[-1], tuple):
             last_user, _ = history[-1]
         elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
@@ -47,65 +45,51 @@ def add_retry_action(chatbot, retrieve_fn):
                 history[-1] = (last_user, f"⚠️ Retry failed: {e}")
         return history
 
+    # ✅ Aligned baseline styling
     retry_btn = gr.Button("Retry Last", variant="secondary")
-    retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
-    return retry_btn
+    retry_btn.style(container=True)
+    retry_btn.elem_id = "retry-button"
+
+    return retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
 
 
 # ----------------------------------------------------------
-# Copy Action (commented out for alpha)
-# ----------------------------------------------------------
-# def add_copy_action(chatbot):
-#     """Adds a Copy button placeholder for clipboard copy."""
-#     copy_btn = gr.Button("📋 Copy", variant="secondary")
-#     copy_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
-#     return copy_btn
-
-
-# ----------------------------------------------------------
-# Voice Input (commented out for alpha)
-# ----------------------------------------------------------
-# def add_voice_action(chatbot):
-#     """Adds a Voice Input button placeholder for mic capture."""
-#     mic_btn = gr.Button("🎤 Speak", variant="secondary")
-#     mic_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
-#     return mic_btn
-
-
-# ----------------------------------------------------------
-# Feedback (👍👎) Buttons — HTML version (bigger + colored)
+# Feedback (👍👎) Buttons — HTML version (bigger + aligned)
 # ----------------------------------------------------------
 def add_feedback_actions():
     """Adds thumbs-up and thumbs-down with working colour toggle."""
     css = """
     <style>
+    #retry-button {
+        margin-top: 16px !important;     /* ✅ Aligns with textbox bottom */
+    }
     .feedback-container {
         display: flex;
         justify-content: space-around;
         align-items: center;
         gap: 1rem;
-        margin-top: 12px;
+        margin-top: 10px;
     }
     .thumb-btn {
-        font-size: 2.2rem;               /* ✅ Bigger thumbs */
-        padding: 10px 25px;
-        border-radius: 14px;
+        font-size: 2.8rem;               /* ✅ Bigger thumbs */
+        padding: 12px 30px;
+        border-radius: 16px;
         border: 1px solid #bbb;
-        background: #f4f4f4;
+        background: #f7f7f7;
         cursor: pointer;
-        transition: all 0.2s ease-in-out;
+        transition: all 0.25s ease-in-out;
         user-select: none;
     }
     .thumb-btn:hover {
-        transform: scale(1.12);
+        transform: scale(1.15);
     }
     .thumb-up.active {
-        background-color: #3CB371 !important;  /* Green for Like */
+        background-color: #2ECC71 !important;  /* Green for Like */
         color: white !important;
         border: none;
     }
     .thumb-down.active {
-        background-color: #FF8C00 !important;  /* Orange for Dislike */
+        background-color: #FF7F50 !important;  /* Orange for Dislike */
         color: white !important;
         border: none;
     }
@@ -144,13 +128,9 @@ def add_feedback_actions():
 def add_user_actions(chatbot, retrieve_fn):
     """Returns dict of all active user-interaction buttons."""
     retry_btn = add_retry_action(chatbot, retrieve_fn)
-    # copy_btn = add_copy_action(chatbot)
-    # mic_btn = add_voice_action(chatbot)
     feedback = add_feedback_actions()
 
     return {
         "retry": retry_btn,
-        # "copy": copy_btn,
-        # "mic": mic_btn,
         "feedback": feedback,
     }
