@@ -2,12 +2,10 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Compatible with current Gradio + LangChain setup
-# ✅ Includes visual thumbs-up / thumbs-down feedback toggle
+# ✅ Adds visual thumbs-up (green) / thumbs-down (orange) feedback
 # ==========================================================
 
 import gradio as gr
-#
 
 
 # ----------------------------------------------------------
@@ -20,13 +18,11 @@ def add_retry_action(chatbot, retrieve_fn):
             return history
         last_user = None
 
-        # Handle both tuple and dict message formats
         if isinstance(history[-1], tuple):
             last_user, _ = history[-1]
         elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
             last_user = history[-1]["content"]
         else:
-            # Find last user message in dict-style history
             for msg in reversed(history):
                 if isinstance(msg, dict) and msg.get("role") == "user":
                     last_user = msg["content"]
@@ -77,23 +73,23 @@ def add_voice_action(chatbot):
 # Feedback (👍👎) Buttons
 # ----------------------------------------------------------
 def add_feedback_actions():
-    """Adds thumbs-up and thumbs-down buttons with visual toggle."""
+    """Adds thumbs-up and thumbs-down buttons with clear colour toggle."""
     with gr.Column():
         gr.Markdown("<div style='text-align:center; opacity:0.75;'>Did this help?</div>")
         like_btn = gr.Button("👍", variant="secondary", scale=1)
         dislike_btn = gr.Button("👎", variant="secondary", scale=1)
 
     def toggle_feedback(choice):
-        """Switch button variants to simulate selection."""
+        """Colour change: green for 👍, orange for 👎."""
         if choice == "up":
             return (
-                gr.Button.update(variant="primary"),
-                gr.Button.update(variant="secondary"),
+                gr.Button.update(style={"background-color": "#3CB371", "color": "white"}),  # Green
+                gr.Button.update(style={"background-color": "", "color": ""}),
             )
         else:
             return (
-                gr.Button.update(variant="secondary"),
-                gr.Button.update(variant="primary"),
+                gr.Button.update(style={"background-color": "", "color": ""}),
+                gr.Button.update(style={"background-color": "#FF8C00", "color": "white"}),  # Orange
             )
 
     like_btn.click(fn=lambda: toggle_feedback("up"), outputs=[like_btn, dislike_btn])
