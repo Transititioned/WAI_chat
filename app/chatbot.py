@@ -13,6 +13,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
+from app.chatbot_actions import add_user_actions
 
 
 def init_chatbot():
@@ -50,14 +51,15 @@ def init_chatbot():
         "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
     )
 
+    # --- Retrieval & Answer ---
     def retrieve_and_answer(question: str):
-        """Retrieve context and generate an LLM answer."""
         retrieved_docs = retriever.invoke(question)
         context = "\n\n".join([d.page_content for d in retrieved_docs])
         filled_prompt = prompt.format(context=context, question=question)
         response = llm.invoke(filled_prompt)
         return response.content
 
+    # --- Chat handler ---
     def answer_fn(message, history):
         try:
             history = history + [{"role": "user", "content": message}]
@@ -71,36 +73,7 @@ def init_chatbot():
     # ==========================================================
     # ✅ Gradio Blocks App
     # ==========================================================
-    css = """
-    <style>
-    .gradio-container .message-row, .gradio-container .input-group {
-        display: flex;
-        align-items: stretch;
-        gap: 0.75rem;
-    }
-
-    textarea.svelte-1ipelgc {
-        min-height: 60px !important;
-        resize: vertical !important;
-        line-height: 1.4em;
-    }
-
-    button.primary, button.secondary {
-        height: auto !important;
-        align-self: stretch !important;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-weight: 600;
-        border-radius: 6px;
-    }
-
-    #retry-button { margin-top: 6px; }
-    .feedback-container { margin-bottom: 24px; }
-    </style>
-    """
-
-    with gr.Blocks(css=css) as demo:
+    with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
@@ -115,18 +88,12 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Import moved here to avoid circular dependency
-                from app.chatbot_actions import add_user_actions
+                # ✅ Modular actions (only Retry + Feedback now)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
                 feedback = actions["feedback"]
 
+        # --- Bind send button ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
-
-
-# ✅ Import only after defining init_chatbot()
-if __name__ == "__main__":
-    demo = init_chatbot()
-    demo.launch(server_name="0.0.0.0", server_port=7860, share=False)
