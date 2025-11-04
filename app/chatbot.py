@@ -5,8 +5,7 @@
 #   WorkFriend Chatbot (CaveBot core)
 #   - Uses LangChain RAG over Markdown corpus
 #   - Modular user actions: Retry, Copy, Voice Input
-#   - Adds simple thumbs-up / thumbs-down feedback (local only)
-#   - Safe with Hugging Face + Gradio 4.x
+#   - Adds simple thumbs-up / thumbs-down feedback (no JS)
 # ==========================================================
 
 import gradio as gr
@@ -15,7 +14,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-from app.chatbot_actions import add_user_actions  # ✅ unchanged import
+from app.chatbot_actions import add_user_actions
 
 
 def init_chatbot():
@@ -55,7 +54,6 @@ def init_chatbot():
 
     # --- Retrieval and LLM answer ---
     def retrieve_and_answer(question: str):
-        """Search vectorstore and get LLM response."""
         retrieved_docs = retriever.invoke(question)
         context = "\n\n".join([d.page_content for d in retrieved_docs])
         filled_prompt = prompt.format(context=context, question=question)
@@ -64,18 +62,16 @@ def init_chatbot():
 
     # --- Chat handler ---
     def answer_fn(message, history):
-        """Handle new user message."""
         try:
             answer = retrieve_and_answer(message)
-            history = history + [(message, answer)]  # append new tuple
+            history = history + [(message, answer)]
             return history
         except Exception as e:
-            error_msg = f"⚠️ Error: {e}"
-            history = history + [(message, error_msg)]
+            history = history + [(message, f"⚠️ Error: {e}")]
             return history
 
     # ==========================================================
-    # ✅ Gradio Blocks App with Modular Action Buttons
+    # ✅ Gradio Blocks App
     # ==========================================================
     with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
@@ -92,36 +88,27 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions loaded from chatbot_actions.py
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
                 copy_btn = actions["copy"]
                 mic_btn = actions["mic"]
 
         # ==========================================================
-        # 👍 👎 Feedback Buttons (Local Toggle Only)
+        # 👍 👎 Feedback Buttons (pure Python cosmetic)
         # ==========================================================
         with gr.Row():
             like_btn = gr.Button("👍", variant="secondary")
             dislike_btn = gr.Button("👎", variant="secondary")
 
-        # --- Feedback toggle logic (purely cosmetic) ---
-        def toggle_feedback(state, which):
-            """Switch button colors to simulate feedback selection."""
-            if which == "up":
+        def toggle_feedback(choice):
+            """Switch button variants to simulate selection."""
+            if choice == "up":
                 return gr.Button.update(variant="primary"), gr.Button.update(variant="secondary")
-            elif which == "down":
-                return gr.Button.update(variant="secondary"), gr.Button.update(variant="primary")
             else:
-                return state
+                return gr.Button.update(variant="secondary"), gr.Button.update(variant="primary")
 
-        like_btn.click(lambda: ("up"), None, [like_btn, dislike_btn],
-                       _js=None, outputs=[like_btn, dislike_btn],
-                       fn=lambda _: toggle_feedback(_, "up"))
-
-        dislike_btn.click(lambda: ("down"), None, [like_btn, dislike_btn],
-                          _js=None, outputs=[like_btn, dislike_btn],
-                          fn=lambda _: toggle_feedback(_, "down"))
+        like_btn.click(fn=lambda: toggle_feedback("up"), inputs=None, outputs=[like_btn, dislike_btn])
+        dislike_btn.click(fn=lambda: toggle_feedback("down"), inputs=None, outputs=[like_btn, dislike_btn])
 
         # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
