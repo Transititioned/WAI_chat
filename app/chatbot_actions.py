@@ -3,7 +3,7 @@
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
 # ✅ Retry / Copy / Speak
-# ✅ Visual feedback: 👍 green, 👎 orange
+# ✅ HTML feedback thumbs with working colour toggle
 # ==========================================================
 
 import gradio as gr
@@ -71,37 +71,69 @@ def add_voice_action(chatbot):
 
 
 # ----------------------------------------------------------
-# Feedback (👍👎) Buttons with forced colour toggle
+# Feedback (👍👎) Buttons — HTML version (fully controllable)
 # ----------------------------------------------------------
 def add_feedback_actions():
-    """Adds thumbs-up and thumbs-down buttons with strong colour feedback."""
-    with gr.Column():
-        gr.Markdown("<div style='text-align:center; opacity:0.75;'>Did this help?</div>")
-        like_btn = gr.Button("👍", elem_id="thumb_up_btn", variant="secondary", scale=1)
-        dislike_btn = gr.Button("👎", elem_id="thumb_down_btn", variant="secondary", scale=1)
+    """Adds thumbs-up and thumbs-down with working colour toggle."""
+    css = """
+    <style>
+    .feedback-container {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 10px;
+    }
+    .thumb-btn {
+        font-size: 1.3rem;
+        padding: 8px 20px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        background: #eee;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        user-select: none;
+    }
+    .thumb-btn:hover {
+        transform: scale(1.1);
+    }
+    .thumb-up.active {
+        background-color: #3CB371 !important;  /* Green */
+        color: white !important;
+        border: none;
+    }
+    .thumb-down.active {
+        background-color: #FF8C00 !important;  /* Orange */
+        color: white !important;
+        border: none;
+    }
+    </style>
+    """
 
-    # internal toggle tracker
-    state = {"selected": None}
+    html = """
+    <div style='text-align:center; opacity:0.75;'>Did this help?</div>
+    <div class="feedback-container">
+        <button class="thumb-btn thumb-up" id="thumbUp">👍</button>
+        <button class="thumb-btn thumb-down" id="thumbDown">👎</button>
+    </div>
 
-    def toggle_feedback(choice):
-        """Switch CSS classes to simulate on/off colour."""
-        if choice == "up":
-            state["selected"] = "up"
-            return (
-                gr.Button.update(elem_classes=["active-thumb-up"]),
-                gr.Button.update(elem_classes=[]),
-            )
-        else:
-            state["selected"] = "down"
-            return (
-                gr.Button.update(elem_classes=[]),
-                gr.Button.update(elem_classes=["active-thumb-down"]),
-            )
+    <script>
+    const up = document.getElementById("thumbUp");
+    const down = document.getElementById("thumbDown");
+    if (up && down) {
+        up.onclick = () => {
+            up.classList.toggle("active");
+            down.classList.remove("active");
+        };
+        down.onclick = () => {
+            down.classList.toggle("active");
+            up.classList.remove("active");
+        };
+    }
+    </script>
+    """
 
-    like_btn.click(fn=lambda: toggle_feedback("up"), outputs=[like_btn, dislike_btn])
-    dislike_btn.click(fn=lambda: toggle_feedback("down"), outputs=[like_btn, dislike_btn])
-
-    return {"like": like_btn, "dislike": dislike_btn}
+    return gr.HTML(css + html)
 
 
 # ----------------------------------------------------------
