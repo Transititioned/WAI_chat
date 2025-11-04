@@ -3,7 +3,7 @@
 # ----------------------------------------------------------
 # WorkFriend Chatbot (CaveBot core)
 # - LangChain RAG over Markdown corpus
-# - Modular user actions: Retry, Copy, Voice Input
+# - Modular user actions: Retry + Feedback
 # - HTML thumbs-up/down feedback (green/orange)
 # ==========================================================
 
@@ -88,12 +88,10 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # Modular user actions
+                # ✅ Modular actions (only Retry + Feedback now)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
-                copy_btn = actions["copy"]
-                mic_btn = actions["mic"]
-                feedback = actions["feedback"]  # ✅ HTML thumbs feedback block
+                feedback = actions["feedback"]
 
         # --- Bind send button ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
