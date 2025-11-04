@@ -1,103 +1,66 @@
 # ==========================================================
-# app/chatbot.py
+# app/chatbot_actions.py
 # ----------------------------------------------------------
-# Purpose:
-#   WorkFriend Chatbot (CaveBot core)
-#   - Uses LangChain RAG over Markdown corpus
-#   - Modular user actions: Retry, Copy
-#   - Safe with Hugging Face + Gradio 4.x
+# Modular chatbot actions for WorkFriend / CaveBot
+# ✅ Compatible with current Gradio + LangChain setup
 # ==========================================================
 
 import gradio as gr
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-import os
-from pathlib import Path
-from app.chatbot_actions import add_user_actions  # ✅ Modular import
 
-
-def init_chatbot():
-    """Initialize and return the Gradio chatbot interface (stable tuple format)."""
-    # --- Paths and setup ---
-    ARTICLES_DIR = Path("content/articles")
-    if not ARTICLES_DIR.exists():
-        ARTICLES_DIR = Path(".")
-    INDEX_DIR = Path("index")
-
-    # --- LLM setup ---
-    openai_key = os.getenv("OPENAI_API_KEY")
-    embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
-
-    # --- Build vector store from markdown files ---
-    docs = []
-    for md_file in ARTICLES_DIR.glob("*.md"):
-        text = md_file.read_text(encoding="utf-8").strip()
-        if not text:
-            continue
-        chunks = [text[i:i + 1500] for i in range(0, len(text), 1500)]
-        for chunk in chunks:
-            docs.append({"content": chunk, "metadata": {"source": md_file.name}})
-
-    vectordb = Chroma.from_texts(
-        texts=[d["content"] for d in docs],
-        embedding=embedding,
-        metadatas=[d["metadata"] for d in docs],
-    )
-    retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-
-    # --- Prompt template ---
-    prompt = ChatPromptTemplate.from_template(
-        "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
-    )
-
-    # --- Retrieval and LLM answer ---
-    def retrieve_and_answer(question: str):
-        """Search vectorstore and get LLM response."""
-        retrieved_docs = retriever.invoke(question)
-        context = "\n\n".join([d.page_content for d in retrieved_docs])
-        filled_prompt = prompt.format(context=context, question=question)
-        response = llm.invoke(filled_prompt)
-        return response.content
-
-    # --- Chat handler ---
-    def answer_fn(message, history):
-        """Handle new user message."""
+# ----------------------------------------------------------
+# Retry Last Action
+# ----------------------------------------------------------
+def add_retry_action(chatbot, retrieve_fn):
+    """Adds a Retry Last button that re-runs the last user message."""
+    def retry_last(history):
+        if not history:
+            return history
+        last_user, _ = history[-1]
         try:
-            answer = retrieve_and_answer(message)
-            history = history + [(message, answer)]  # append new tuple
-            return history
+            new_answer = retrieve_fn(last_user)
+            history[-1] = (last_user, new_answer)
         except Exception as e:
-            error_msg = f"⚠️ Error: {e}"
-            history = history + [(message, error_msg)]
-            return history
+            history[-1] = (last_user, f"⚠️ Retry failed: {e}")
+        return history
 
-    # ==========================================================
-    # ✅ Gradio Blocks App with Modular Action Buttons
-    # ==========================================================
-    with gr.Blocks() as demo:
-        gr.Markdown("### 💬 WorkFriend Chatbot")
+    retry_btn = gr.Button("Retry Last", variant="secondary")
+    retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
+    return retry_btn
 
-        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        with gr.Row():
-            user_input = gr.Textbox(
-                placeholder="Ask me something...",
-                label="Your question:",
-                scale=4
-            )
+# ----------------------------------------------------------
+# Copy & Voice Actions (Dummy versions for now)
+# ----------------------------------------------------------
+def add_copy_action(chatbot):
+    """Adds a Copy button placeholder for future clipboard support."""
+    copy_btn = gr.Button("📋 Copy", variant="secondary")
+    # Placeholder: returns history untouched
+    copy_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
+    return copy_btn
 
-            with gr.Column(scale=1, min_width=150):
-                send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions loaded from chatbot_actions.py
-                actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions["retry"]
-                copy_btn = actions["copy"]
-                # mic removed for now
+def add_voice_action(chatbot):
+    """Adds a Voice Input button placeholder for future mic capture."""
+    mic_btn = gr.Button("🎤 Speak", variant="secondary")
+    # Placeholder: no mic functionality yet
+    mic_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
+    return mic_btn
 
-        # --- Event bindings ---
-        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-    return demo
+# ----------------------------------------------------------
+# Combined Actions Loader
+# ----------------------------------------------------------
+def add_user_actions(chatbot, retrieve_fn):
+    """
+    Returns a dict of user-interaction buttons:
+    Retry, Copy, and Voice Input.
+    """
+    retry_btn = add_retry_action(chatbot, retrieve_fn)
+    copy_btn = add_copy_action(chatbot)
+    mic_btn = add_voice_action(chatbot)
+
+    return {
+        "retry": retry_btn,
+        "copy": copy_btn,
+        "mic": mic_btn,
+    }
