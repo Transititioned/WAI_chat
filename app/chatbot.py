@@ -4,7 +4,7 @@
 # WorkFriend Chatbot (CaveBot core)
 #   - LangChain RAG over Markdown corpus
 #   - Modular user actions: Retry, Copy, Voice Input
-#   - Adds thumbs-up / thumbs-down feedback (visual toggle)
+#   - Single feedback section (thumbs-up/down, visual toggle)
 # ==========================================================
 
 import gradio as gr
@@ -91,37 +91,14 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # Modular user actions
+                # Modular user actions (including thumbs)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
                 copy_btn = actions["copy"]
                 mic_btn = actions["mic"]
+                feedback = actions["feedback"]  # 👍👎 now managed from user_actions.py
 
+        # --- Send button event binding
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-
-        # ======================================================
-        # 👍 👎 Feedback Section (must stay inside this context)
-        # ======================================================
-        with gr.Row():
-            gr.Markdown("<div style='text-align:center; opacity:0.75;'>Did this help?</div>")
-
-        with gr.Row():
-            like_btn = gr.Button("👍", variant="secondary", scale=1)
-            dislike_btn = gr.Button("👎", variant="secondary", scale=1)
-
-            def toggle_feedback(choice):
-                if choice == "up":
-                    return (
-                        gr.Button.update(variant="primary"),
-                        gr.Button.update(variant="secondary"),
-                    )
-                else:
-                    return (
-                        gr.Button.update(variant="secondary"),
-                        gr.Button.update(variant="primary"),
-                    )
-
-            like_btn.click(fn=lambda: toggle_feedback("up"), outputs=[like_btn, dislike_btn])
-            dislike_btn.click(fn=lambda: toggle_feedback("down"), outputs=[like_btn, dislike_btn])
 
     return demo
