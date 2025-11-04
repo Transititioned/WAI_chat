@@ -1,12 +1,10 @@
 # ==========================================================
 # app/chatbot.py
 # ----------------------------------------------------------
-# Purpose:
-#   WorkFriend Chatbot (CaveBot core)
-#   - Uses LangChain RAG over Markdown corpus
+# WorkFriend Chatbot (CaveBot core)
+#   - LangChain RAG over Markdown corpus
 #   - Modular user actions: Retry, Copy, Voice Input
-#   - Adds simple thumbs-up / thumbs-down feedback (visual only)
-#   - Compatible with Hugging Face + Gradio 4.x
+#   - Adds thumbs-up / thumbs-down feedback (visual toggle)
 # ==========================================================
 
 import gradio as gr
@@ -19,7 +17,7 @@ from app.chatbot_actions import add_user_actions
 
 
 def init_chatbot():
-    """Initialize and return the Gradio chatbot interface (stable tuple format)."""
+    """Initialize and return the Gradio chatbot interface."""
     # --- Paths and setup ---
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
@@ -31,7 +29,7 @@ def init_chatbot():
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # --- Build vector store from markdown files ---
+    # --- Build vector store ---
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -53,34 +51,30 @@ def init_chatbot():
         "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
     )
 
-    # --- Retrieval and LLM answer ---
     def retrieve_and_answer(question: str):
-        """Search vectorstore and get LLM response."""
+        """Retrieve context and generate LLM answer."""
         retrieved_docs = retriever.invoke(question)
         context = "\n\n".join([d.page_content for d in retrieved_docs])
         filled_prompt = prompt.format(context=context, question=question)
         response = llm.invoke(filled_prompt)
         return response.content
 
-    # --- Chat handler ---
     def answer_fn(message, history):
-        """Handle new user message."""
+        """Handle user message."""
         try:
             answer = retrieve_and_answer(message)
-            history = history + [(message, answer)]  # append new tuple
+            history = history + [(message, answer)]
             return history
         except Exception as e:
-            error_msg = f"⚠️ Error: {e}"
-            history = history + [(message, error_msg)]
-            return history
+            return history + [(message, f"⚠️ Error: {e}")]
 
     # ==========================================================
-    # ✅ Gradio Blocks App with Modular Action Buttons
+    # ✅ Gradio Blocks App
     # ==========================================================
     with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(label="WorkFriend Conversation")
+        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
         with gr.Row():
             user_input = gr.Textbox(
@@ -92,38 +86,37 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions loaded from chatbot_actions.py
+                # Modular user actions
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
                 copy_btn = actions["copy"]
                 mic_btn = actions["mic"]
 
-        # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-    # ==========================================================
-    # 👍 👎 Feedback row (visual only, outside inner column)
-    # ==========================================================
-    with gr.Row():
-        gr.Markdown("<div style='text-align:center; opacity:0.75;'>Did this help?</div>")
+        # ======================================================
+        # 👍 👎 Feedback Section (must stay inside this context)
+        # ======================================================
+        with gr.Row():
+            gr.Markdown("<div style='text-align:center; opacity:0.75;'>Did this help?</div>")
 
-    with gr.Row():
-        like_btn = gr.Button("👍", variant="secondary", scale=1)
-        dislike_btn = gr.Button("👎", variant="secondary", scale=1)
+        with gr.Row():
+            like_btn = gr.Button("👍", variant="secondary", scale=1)
+            dislike_btn = gr.Button("👎", variant="secondary", scale=1)
 
-        def toggle_feedback(choice):
-            if choice == "up":
-                return (
-                    gr.Button.update(variant="primary"),
-                    gr.Button.update(variant="secondary"),
-                )
-            else:
-                return (
-                    gr.Button.update(variant="secondary"),
-                    gr.Button.update(variant="primary"),
-                )
+            def toggle_feedback(choice):
+                if choice == "up":
+                    return (
+                        gr.Button.update(variant="primary"),
+                        gr.Button.update(variant="secondary"),
+                    )
+                else:
+                    return (
+                        gr.Button.update(variant="secondary"),
+                        gr.Button.update(variant="primary"),
+                    )
 
-        like_btn.click(fn=lambda: toggle_feedback("up"), outputs=[like_btn, dislike_btn])
-        dislike_btn.click(fn=lambda: toggle_feedback("down"), outputs=[like_btn, dislike_btn])
+            like_btn.click(fn=lambda: toggle_feedback("up"), outputs=[like_btn, dislike_btn])
+            dislike_btn.click(fn=lambda: toggle_feedback("down"), outputs=[like_btn, dislike_btn])
 
     return demo
