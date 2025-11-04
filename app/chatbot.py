@@ -7,6 +7,7 @@
 #   - Modular user actions: Retry, Copy, Mic
 #   - Includes thumbs-up / thumbs-down feedback toggle
 # ==========================================================
+#
 
 import gradio as gr
 from langchain_community.vectorstores import Chroma
