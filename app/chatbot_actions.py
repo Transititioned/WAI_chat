@@ -2,8 +2,9 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Retry / Copy / Speak
-# ✅ HTML feedback thumbs with working colour toggle
+# ✅ Retry button (functional)
+# ✅ HTML feedback thumbs (bigger, color toggle)
+# ✅ Copy / Speak commented out (for future use)
 # ==========================================================
 
 import gradio as gr
@@ -19,6 +20,7 @@ def add_retry_action(chatbot, retrieve_fn):
             return history
         last_user = None
 
+        # Handle both tuple and message-dict chat formats
         if isinstance(history[-1], tuple):
             last_user, _ = history[-1]
         elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
@@ -51,27 +53,27 @@ def add_retry_action(chatbot, retrieve_fn):
 
 
 # ----------------------------------------------------------
-# Copy Action (placeholder)
+# Copy Action (commented out for alpha)
 # ----------------------------------------------------------
-def add_copy_action(chatbot):
-    """Adds a Copy button placeholder for clipboard copy."""
-    copy_btn = gr.Button("📋 Copy", variant="secondary")
-    copy_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
-    return copy_btn
+# def add_copy_action(chatbot):
+#     """Adds a Copy button placeholder for clipboard copy."""
+#     copy_btn = gr.Button("📋 Copy", variant="secondary")
+#     copy_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
+#     return copy_btn
 
 
 # ----------------------------------------------------------
-# Voice Input (placeholder)
+# Voice Input (commented out for alpha)
 # ----------------------------------------------------------
-def add_voice_action(chatbot):
-    """Adds a Voice Input button placeholder for mic capture."""
-    mic_btn = gr.Button("🎤 Speak", variant="secondary")
-    mic_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
-    return mic_btn
+# def add_voice_action(chatbot):
+#     """Adds a Voice Input button placeholder for mic capture."""
+#     mic_btn = gr.Button("🎤 Speak", variant="secondary")
+#     mic_btn.click(fn=lambda h: h, inputs=chatbot, outputs=chatbot)
+#     return mic_btn
 
 
 # ----------------------------------------------------------
-# Feedback (👍👎) Buttons — HTML version (fully controllable)
+# Feedback (👍👎) Buttons — HTML version (bigger + colored)
 # ----------------------------------------------------------
 def add_feedback_actions():
     """Adds thumbs-up and thumbs-down with working colour toggle."""
@@ -82,28 +84,28 @@ def add_feedback_actions():
         justify-content: space-around;
         align-items: center;
         gap: 1rem;
-        margin-top: 10px;
+        margin-top: 12px;
     }
     .thumb-btn {
-        font-size: 1.3rem;
-        padding: 8px 20px;
-        border-radius: 10px;
-        border: 1px solid #ccc;
-        background: #eee;
+        font-size: 2.2rem;               /* ✅ Bigger thumbs */
+        padding: 10px 25px;
+        border-radius: 14px;
+        border: 1px solid #bbb;
+        background: #f4f4f4;
         cursor: pointer;
         transition: all 0.2s ease-in-out;
         user-select: none;
     }
     .thumb-btn:hover {
-        transform: scale(1.1);
+        transform: scale(1.12);
     }
     .thumb-up.active {
-        background-color: #3CB371 !important;  /* Green */
+        background-color: #3CB371 !important;  /* Green for Like */
         color: white !important;
         border: none;
     }
     .thumb-down.active {
-        background-color: #FF8C00 !important;  /* Orange */
+        background-color: #FF8C00 !important;  /* Orange for Dislike */
         color: white !important;
         border: none;
     }
@@ -111,7 +113,7 @@ def add_feedback_actions():
     """
 
     html = """
-    <div style='text-align:center; opacity:0.75;'>Did this help?</div>
+    <div style='text-align:center; opacity:0.75; font-size:1rem;'>Did this help?</div>
     <div class="feedback-container">
         <button class="thumb-btn thumb-up" id="thumbUp">👍</button>
         <button class="thumb-btn thumb-down" id="thumbDown">👎</button>
@@ -140,18 +142,15 @@ def add_feedback_actions():
 # Combined Actions Loader
 # ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
-    """
-    Returns a dict of all user-interaction buttons:
-    Retry, Copy, Mic, and Feedback (👍👎).
-    """
+    """Returns dict of all active user-interaction buttons."""
     retry_btn = add_retry_action(chatbot, retrieve_fn)
-    copy_btn = add_copy_action(chatbot)
-    mic_btn = add_voice_action(chatbot)
+    # copy_btn = add_copy_action(chatbot)
+    # mic_btn = add_voice_action(chatbot)
     feedback = add_feedback_actions()
 
     return {
         "retry": retry_btn,
-        "copy": copy_btn,
-        "mic": mic_btn,
+        # "copy": copy_btn,
+        # "mic": mic_btn,
         "feedback": feedback,
     }
