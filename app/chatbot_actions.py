@@ -3,8 +3,8 @@
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
 # ✅ Retry button aligned with input
-# ✅ Large thumbs (green/orange toggle, cross-browser consistent)
-# ✅ Clean, minimal UX
+# ✅ SVG thumbs-up / thumbs-down (consistent size & color toggle)
+# ✅ Clean UI and CSS animations
 # ==========================================================
 
 import gradio as gr
@@ -53,17 +53,12 @@ def add_retry_action(chatbot, retrieve_fn):
 
 
 # ----------------------------------------------------------
-# Feedback (👍👎) Buttons
+# Feedback (👍👎) SVG Buttons
 # ----------------------------------------------------------
 def add_feedback_actions():
-    """Adds thumbs-up and thumbs-down with color toggle and consistent sizing."""
+    """Adds thumbs-up and thumbs-down SVG buttons with color toggle and consistent sizing."""
     css = """
     <style>
-    /* Alignment tweaks */
-    textarea, input[type="text"] {
-        margin-bottom: 10px !important;
-    }
-
     #retry-button {
         margin-top: 6px !important;
     }
@@ -77,34 +72,33 @@ def add_feedback_actions():
     }
 
     .thumb-btn {
-        font-size: 6rem;                     /* Large thumbs */
-        line-height: 1;
-        width: 100px;                        /* Fixed visual box */
-        height: 100px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        width: 90px;
+        height: 90px;
         background: none;
         border: none;
         cursor: pointer;
         transition: transform 0.25s ease, filter 0.25s ease;
-        user-select: none;
-        font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+    }
+
+    .thumb-btn svg {
+        width: 100%;
+        height: 100%;
+        fill: #999;
+        transition: fill 0.3s ease, filter 0.3s ease;
     }
 
     .thumb-btn:hover {
         transform: scale(1.15);
-        filter: brightness(1.25);
     }
 
-    .thumb-up.active {
-        color: #2ECC71 !important;            /* Green */
-        text-shadow: 0 0 10px #2ECC71;
+    .thumb-up.active svg {
+        fill: #2ECC71; /* Green */
+        filter: drop-shadow(0 0 8px #2ECC71);
     }
 
-    .thumb-down.active {
-        color: #FF7F50 !important;            /* Orange */
-        text-shadow: 0 0 10px #FF7F50;
+    .thumb-down.active svg {
+        fill: #FF7F50; /* Orange */
+        filter: drop-shadow(0 0 8px #FF7F50);
     }
     </style>
     """
@@ -112,8 +106,21 @@ def add_feedback_actions():
     html = """
     <div style='text-align:center; opacity:0.85; font-size:1rem;'>Did this help?</div>
     <div class="feedback-container">
-        <button class="thumb-btn thumb-up" id="thumbUp">👍</button>
-        <button class="thumb-btn thumb-down" id="thumbDown">👎</button>
+        <button class="thumb-btn thumb-up" id="thumbUp" title="Helpful">
+            <svg viewBox="0 0 24 24">
+                <path d="M1 21h4V9H1v12zM23 10c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32
+                c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0
+                1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
+            </svg>
+        </button>
+        <button class="thumb-btn thumb-down" id="thumbDown" title="Not helpful">
+            <svg viewBox="0 0 24 24">
+                <path d="M15 3H6c-.83 0-1.54.5-1.84 1.22L1.14 11.27C1.05 11.5 1
+                11.74 1 12v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44
+                1.06L9.83 23l6.59-6.59c.37-.36.59-.86.59-1.41V5c0-1.1-.9-2-2-2zm4
+                0v12h4V3h-4z"/>
+            </svg>
+        </button>
     </div>
 
     <script>
@@ -140,7 +147,7 @@ def add_feedback_actions():
 # ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
     """
-    Returns a dict of all active user-interaction buttons:
+    Returns a dict of all user-interaction buttons:
     Retry + Feedback (👍👎)
     """
     retry_btn = add_retry_action(chatbot, retrieve_fn)
