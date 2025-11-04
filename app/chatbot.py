@@ -14,7 +14,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-from app.chatbot_actions import add_user_actions  # ✅ Updated import
+from app.chatbot_actions import add_user_actions  # ✅ Modular import
 
 
 def init_chatbot():
@@ -96,6 +96,7 @@ def init_chatbot():
                 retry_btn = actions["retry"]
                 copy_btn = actions["copy"]
                 mic_btn = actions["mic"]
+                copy_box = actions["copy_box"]  # ✅ Added: shows text for manual copy
 
         # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
