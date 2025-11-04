@@ -13,11 +13,11 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-from app.chatbot_actions import add_user_actions
 
 
 def init_chatbot():
     """Initialize and return the Gradio chatbot interface."""
+
     # --- Paths and setup ---
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
@@ -73,7 +73,36 @@ def init_chatbot():
     # ==========================================================
     # ✅ Gradio Blocks App
     # ==========================================================
-    with gr.Blocks() as demo:
+    css = """
+    <style>
+    .gradio-container .message-row, .gradio-container .input-group {
+        display: flex;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    textarea.svelte-1ipelgc {
+        min-height: 60px !important;
+        resize: vertical !important;
+        line-height: 1.4em;
+    }
+
+    button.primary, button.secondary {
+        height: auto !important;
+        align-self: stretch !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+
+    #retry-button { margin-top: 6px; }
+    .feedback-container { margin-bottom: 24px; }
+    </style>
+    """
+
+    with gr.Blocks(css=css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
@@ -88,7 +117,8 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (only Retry + Feedback now)
+                # ✅ Import here to avoid circular reference
+                from app.chatbot_actions import add_user_actions
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
                 feedback = actions["feedback"]
