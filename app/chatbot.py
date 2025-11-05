@@ -5,6 +5,7 @@
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Feedback
 # - HTML thumbs-up/down feedback (green/orange)
+# - Embedded JS+CSS Toolbox iframe (external HF Space)
 # ==========================================================
 
 import gradio as gr
@@ -95,5 +96,24 @@ def init_chatbot():
 
         # --- Bind send button ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
+
+        # ======================================================
+        # 💡 Embedded WorkFriend JS+CSS Toolbox (External HF Space)
+        # ======================================================
+        TOOLBOX_URL = "https://huggingface.co/spaces/Ausadmin/workfriend_JS_plus_CSS_toolbox_v2"
+
+        gr.HTML("""
+            <hr style='margin:16px 0; border:none; border-top:1px solid #ddd;'>
+        """)
+
+        with gr.Row():
+            gr.HTML(f"""
+                <iframe
+                    src="{TOOLBOX_URL}"
+                    height="140"
+                    width="100%"
+                    style="border:none; border-radius:8px; background:transparent;">
+                </iframe>
+            """)
 
     return demo
