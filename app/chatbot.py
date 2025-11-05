@@ -130,7 +130,7 @@ def init_chatbot():
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
 
-                # ✅ Inline Copy button now sits neatly under actions
+                # ✅ Inline Copy button under actions
                 gr.HTML("""
                 <div id="toolbox" style="
                     text-align:center;
@@ -140,9 +140,7 @@ def init_chatbot():
                     padding:10px;
                     margin-top:12px;
                     box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                    <h5 style="margin-bottom:6px; color:#333;">
-                        💼 WorkFriend JS + CSS Toolbox
-                    </h5>
+                    <h5 style="margin-bottom:6px; color:#333;">💼 WorkFriend Toolbox</h5>
                     <button id="copyResponseBtn"
                         style="background:#f97316; color:white; border:none;
                                padding:6px 12px; border-radius:6px;
