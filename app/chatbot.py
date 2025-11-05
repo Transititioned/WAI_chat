@@ -3,8 +3,9 @@
 # ----------------------------------------------------------
 # WorkFriend Chatbot (CaveBot core)
 # - LangChain RAG over Markdown corpus
-# - Modular user actions: Retry + Feedback + Copy Last Response
-# - Inline JS+CSS Toolbox (integrated into user actions column)
+# - Modular user actions: Retry + Copy
+# - Inline thumbs-up/down feedback moved below chatbot
+# - Sandbox-safe HTML/JS for HF Spaces
 # ==========================================================
 
 import gradio as gr
@@ -76,8 +77,35 @@ def init_chatbot():
     with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
+        # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
+        # --- Feedback Section: directly under chatbot output ---
+        gr.HTML("""
+        <div id="feedback-section" style="text-align:center; margin-top:8px; margin-bottom:4px;">
+            <p style="font-size:0.85rem; color:#666; margin-bottom:4px;">Did this help?</p>
+            <button id="thumbs-up" style="font-size:1rem; background:none; border:none; cursor:pointer;">👍</button>
+            <button id="thumbs-down" style="font-size:1rem; background:none; border:none; cursor:pointer;">👎</button>
+        </div>
+        <script>
+        setTimeout(() => {
+            const up = document.getElementById("thumbs-up");
+            const down = document.getElementById("thumbs-down");
+            if (up && down) {
+                up.onclick = () => {
+                    up.style.color = "#22c55e";
+                    down.style.color = "#999";
+                };
+                down.onclick = () => {
+                    down.style.color = "#ef4444";
+                    up.style.color = "#999";
+                };
+            }
+        }, 1500);
+        </script>
+        """)
+
+        # --- Input Row ---
         with gr.Row():
             user_input = gr.Textbox(
                 placeholder="Ask me something...",
@@ -86,17 +114,16 @@ def init_chatbot():
             )
 
             # ==================================================
-            # 📦 User Actions Column (Retry + Feedback + Copy)
+            # 📦 User Actions Column
             # ==================================================
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (Retry + Feedback)
+                # ✅ Modular actions (Retry + Feedback placeholders)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
-                feedback = actions["feedback"]
 
-                # ✅ Inline Copy button now lives here
+                # ✅ Inline Copy button now sits with user actions
                 gr.HTML("""
                 <div id="toolbox" style="
                     text-align:center;
@@ -115,16 +142,11 @@ def init_chatbot():
                                cursor:pointer; font-size:0.9rem;">
                         📋 Copy Last Response
                     </button>
-                    <p id="copyMsg" style="color:green; display:none; margin-top:4px; font-size:0.85rem;">
-                        Copied latest response!
-                    </p>
                 </div>
 
                 <script>
                 setTimeout(() => {
                   const btn = document.getElementById("copyResponseBtn");
-                  const msg = document.getElementById("copyMsg");
-
                   function getLastBotMessage() {
                     const chatEls = document.querySelectorAll('.message.bot, .message.assistant');
                     if (chatEls.length === 0) return '';
@@ -136,10 +158,10 @@ def init_chatbot():
                     btn.addEventListener("click", () => {
                       const content = getLastBotMessage();
                       if (!content) return alert("No chatbot response found yet.");
+                      btn.textContent = "✅ Copied!";
                       navigator.clipboard.writeText(content).then(() => {
-                        msg.style.display = "block";
-                        setTimeout(() => msg.style.display = "none", 1500);
-                      }).catch(() => alert("Clipboard blocked by browser ⚠️"));
+                        setTimeout(() => btn.textContent = "📋 Copy Last Response", 1500);
+                      }).catch(() => alert("Clipboard blocked ⚠️"));
                     });
                   }
                 }, 2000);
