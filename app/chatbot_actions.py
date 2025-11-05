@@ -56,13 +56,16 @@ def add_retry_action(chatbot, retrieve_fn):
 # ----------------------------------------------------------
 # Feedback (👍👎) SVG Buttons – sandbox-safe click logic
 # ----------------------------------------------------------
-def add_feedback_actions():
-    """Adds balanced thumbs-up/down SVG buttons with inline click logic."""
+def add_feedback_below_chatbot():
+    """
+    Adds balanced thumbs-up/down SVG buttons with sandbox-safe inline logic.
+    This version is meant to appear directly under the chatbot output.
+    """
     css = """
     <style>
     .feedback-wrapper {
         text-align: center;
-        margin-top: 10px;
+        margin-top: 14px;
     }
     .feedback-container {
         display: flex;
@@ -72,8 +75,8 @@ def add_feedback_actions():
         margin-top: 4px;
     }
     .thumb-btn {
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         background: none;
         border: none;
         cursor: pointer;
@@ -86,7 +89,7 @@ def add_feedback_actions():
         transition: fill 0.3s ease, filter 0.3s ease;
     }
     .thumb-btn:hover {
-        transform: scale(1.1);
+        transform: scale(1.08);
     }
     .thumb-up.active svg {
         fill: #22c55e; /* Tailwind green-500 */
@@ -138,7 +141,7 @@ def add_user_actions(chatbot, retrieve_fn):
     Retry + Feedback (👍👎)
     """
     retry_btn = add_retry_action(chatbot, retrieve_fn)
-    feedback = add_feedback_actions()
+    feedback = add_feedback_below_chatbot()
 
     return {
         "retry": retry_btn,
