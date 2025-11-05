@@ -5,7 +5,7 @@
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Feedback
 # - HTML thumbs-up/down feedback (green/orange)
-# - Embedded JS+CSS Toolbox iframe (external HF Space)
+# - Inline JS+CSS Toolbox (simple local version)
 # ==========================================================
 
 import gradio as gr
@@ -98,22 +98,42 @@ def init_chatbot():
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
         # ======================================================
-        # 💡 Embedded WorkFriend JS+CSS Toolbox (External HF Space)
+        # 💡 Inline WorkFriend JS+CSS Toolbox (local HTML block)
         # ======================================================
-        TOOLBOX_URL = "https://huggingface.co/spaces/Ausadmin/workfriend_JS_plus_CSS_toolbox_v2"
-
         gr.HTML("""
-            <hr style='margin:16px 0; border:none; border-top:1px solid #ddd;'>
-        """)
+        <hr style='margin:16px 0; border:none; border-top:1px solid #ddd;'>
+        <div id="toolbox" style="
+            text-align:center;
+            background:#fafafa;
+            border:1px solid #eee;
+            border-radius:10px;
+            padding:14px;
+            max-width:600px;
+            margin:0 auto;
+            box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <h4 style="margin-bottom:8px; color:#333;">🧰 WorkFriend JS + CSS Toolbox</h4>
+            <input id="copyText" value="Example snippet from WorkFriend Toolbox"
+                   style="width:80%; padding:8px; border-radius:6px; border:1px solid #ccc;">
+            <button id="copyBtn"
+                style="background:#f97316; color:white; border:none; 
+                       padding:8px 14px; border-radius:6px; margin-left:8px;
+                       cursor:pointer;">📋 Copy</button>
+            <p id="copyMsg" style="color:green; display:none; margin-top:6px;">Copied!</p>
+        </div>
 
-        with gr.Row():
-            gr.HTML(f"""
-                <iframe
-                    src="{TOOLBOX_URL}"
-                    height="140"
-                    width="100%"
-                    style="border:none; border-radius:8px; background:transparent;">
-                </iframe>
-            """)
+        <script>
+        const btn = document.getElementById("copyBtn");
+        const txt = document.getElementById("copyText");
+        const msg = document.getElementById("copyMsg");
+        if (btn) {
+          btn.addEventListener("click", () => {
+            navigator.clipboard.writeText(txt.value).then(() => {
+              msg.style.display = "block";
+              setTimeout(() => msg.style.display = "none", 1500);
+            });
+          });
+        }
+        </script>
+        """)
 
     return demo
