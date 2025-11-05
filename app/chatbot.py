@@ -5,7 +5,7 @@
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Feedback
 # - HTML thumbs-up/down feedback (green/orange)
-# - Inline JS+CSS Toolbox (simple local version)
+# - Inline JS+CSS Toolbox (copies last chatbot response)
 # ==========================================================
 
 import gradio as gr
@@ -98,7 +98,7 @@ def init_chatbot():
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
         # ======================================================
-        # 💡 Inline WorkFriend JS+CSS Toolbox (local HTML block)
+        # 💡 Inline WorkFriend JS+CSS Toolbox (copies last response)
         # ======================================================
         gr.HTML("""
         <hr style='margin:16px 0; border:none; border-top:1px solid #ddd;'>
@@ -111,28 +111,44 @@ def init_chatbot():
             max-width:600px;
             margin:0 auto;
             box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-            <h4 style="margin-bottom:8px; color:#333;">🧰 WorkFriend JS + CSS Toolbox</h4>
-            <input id="copyText" value="Example snippet from WorkFriend Toolbox"
-                   style="width:80%; padding:8px; border-radius:6px; border:1px solid #ccc;">
-            <button id="copyBtn"
-                style="background:#f97316; color:white; border:none; 
-                       padding:8px 14px; border-radius:6px; margin-left:8px;
-                       cursor:pointer;">📋 Copy</button>
-            <p id="copyMsg" style="color:green; display:none; margin-top:6px;">Copied!</p>
+            <h4 style="margin-bottom:8px; color:#333;">
+                💼 WorkFriend JS + CSS Toolbox
+            </h4>
+            <button id="copyResponseBtn"
+                style="background:#f97316; color:white; border:none;
+                       padding:8px 14px; border-radius:6px; cursor:pointer;">
+                📋 Copy Last Response
+            </button>
+            <p id="copyMsg" style="color:green; display:none; margin-top:6px;">
+                Copied latest response!
+            </p>
         </div>
 
         <script>
-        const btn = document.getElementById("copyBtn");
-        const txt = document.getElementById("copyText");
-        const msg = document.getElementById("copyMsg");
-        if (btn) {
-          btn.addEventListener("click", () => {
-            navigator.clipboard.writeText(txt.value).then(() => {
-              msg.style.display = "block";
-              setTimeout(() => msg.style.display = "none", 1500);
+        // Delay ensures chatbot DOM loads
+        setTimeout(() => {
+          const btn = document.getElementById("copyResponseBtn");
+          const msg = document.getElementById("copyMsg");
+
+          // Helper: locate the last assistant message
+          function getLastBotMessage() {
+            const chatEls = document.querySelectorAll('.message.bot, .message.assistant');
+            if (chatEls.length === 0) return '';
+            const lastEl = chatEls[chatEls.length - 1];
+            return lastEl.textContent || '';
+          }
+
+          if (btn) {
+            btn.addEventListener("click", () => {
+              const content = getLastBotMessage();
+              if (!content) return alert("No chatbot response found yet.");
+              navigator.clipboard.writeText(content).then(() => {
+                msg.style.display = "block";
+                setTimeout(() => msg.style.display = "none", 1500);
+              }).catch(() => alert("Clipboard blocked by browser ⚠️"));
             });
-          });
-        }
+          }
+        }, 2000);
         </script>
         """)
 
