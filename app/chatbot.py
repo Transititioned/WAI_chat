@@ -4,7 +4,7 @@
 # WorkFriend Chatbot (CaveBot core)
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Copy
-# - Inline thumbs-up/down feedback below chatbot output
+# - SVG thumbs-up/down feedback below chatbot output
 # - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
@@ -14,7 +14,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-from app.chatbot_actions import add_user_actions
+from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
@@ -80,37 +80,8 @@ def init_chatbot():
         # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # --- Feedback Section: directly under chatbot output ---
-        gr.HTML("""
-        <div id="feedback-section" style="text-align:center; margin-top:8px; margin-bottom:6px;">
-            <span style="font-size:0.85rem; color:#666;">Did this help?</span><br>
-            <button id="thumbs-up"
-                style="font-size:1rem; margin:0 8px; background:none; border:none; cursor:pointer; color:#aaa;">
-                👍
-            </button>
-            <button id="thumbs-down"
-                style="font-size:1rem; margin:0 8px; background:none; border:none; cursor:pointer; color:#aaa;">
-                👎
-            </button>
-        </div>
-        <script>
-        setTimeout(() => {
-            const up = document.getElementById("thumbs-up");
-            const down = document.getElementById("thumbs-down");
-            if (up && down) {
-                const neutral = "#aaa", good = "#16a34a", bad = "#dc2626";
-                up.onclick = () => {
-                    up.style.color = good;
-                    down.style.color = neutral;
-                };
-                down.onclick = () => {
-                    down.style.color = bad;
-                    up.style.color = neutral;
-                };
-            }
-        }, 1000);
-        </script>
-        """)
+        # 👍👎 Feedback below chatbot
+        feedback = add_feedback_below_chatbot()
 
         # --- Input Row ---
         with gr.Row():
@@ -126,7 +97,7 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (Retry only)
+                # ✅ Modular actions (Retry button)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
 
