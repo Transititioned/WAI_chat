@@ -4,8 +4,8 @@
 # WorkFriend Chatbot (CaveBot core)
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Copy
-# - Inline thumbs-up/down feedback moved below chatbot
-# - Sandbox-safe HTML/JS for HF Spaces
+# - Inline thumbs-up/down feedback below chatbot output
+# - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
 import gradio as gr
@@ -82,26 +82,33 @@ def init_chatbot():
 
         # --- Feedback Section: directly under chatbot output ---
         gr.HTML("""
-        <div id="feedback-section" style="text-align:center; margin-top:8px; margin-bottom:4px;">
-            <p style="font-size:0.85rem; color:#666; margin-bottom:4px;">Did this help?</p>
-            <button id="thumbs-up" style="font-size:1rem; background:none; border:none; cursor:pointer;">👍</button>
-            <button id="thumbs-down" style="font-size:1rem; background:none; border:none; cursor:pointer;">👎</button>
+        <div id="feedback-section" style="text-align:center; margin-top:8px; margin-bottom:6px;">
+            <span style="font-size:0.85rem; color:#666;">Did this help?</span><br>
+            <button id="thumbs-up"
+                style="font-size:1rem; margin:0 8px; background:none; border:none; cursor:pointer; color:#aaa;">
+                👍
+            </button>
+            <button id="thumbs-down"
+                style="font-size:1rem; margin:0 8px; background:none; border:none; cursor:pointer; color:#aaa;">
+                👎
+            </button>
         </div>
         <script>
         setTimeout(() => {
             const up = document.getElementById("thumbs-up");
             const down = document.getElementById("thumbs-down");
             if (up && down) {
+                const neutral = "#aaa", good = "#16a34a", bad = "#dc2626";
                 up.onclick = () => {
-                    up.style.color = "#22c55e";
-                    down.style.color = "#999";
+                    up.style.color = good;
+                    down.style.color = neutral;
                 };
                 down.onclick = () => {
-                    down.style.color = "#ef4444";
-                    up.style.color = "#999";
+                    down.style.color = bad;
+                    up.style.color = neutral;
                 };
             }
-        }, 1500);
+        }, 1000);
         </script>
         """)
 
@@ -119,11 +126,11 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (Retry + Feedback placeholders)
+                # ✅ Modular actions (Retry only)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
 
-                # ✅ Inline Copy button now sits with user actions
+                # ✅ Inline Copy button now sits neatly under actions
                 gr.HTML("""
                 <div id="toolbox" style="
                     text-align:center;
