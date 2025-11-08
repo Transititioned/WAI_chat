@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Final Mint v1.4 — Uniform Copy Button)
+# app/chatbot.py — WorkFriend Chatbot (Final Mint v1.5 — Fixed Copy Width)
 # ==========================================================
 
 import gradio as gr
@@ -20,9 +20,6 @@ def init_chatbot():
         ARTICLES_DIR = Path(".")
     INDEX_DIR = Path("index")
 
-    # ------------------------------------------------------
-    # LLM Setup
-    # ------------------------------------------------------
     openai_key = os.getenv("OPENAI_API_KEY")
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
@@ -46,9 +43,6 @@ def init_chatbot():
     )
     retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
-    # ------------------------------------------------------
-    # Prompt Template
-    # ------------------------------------------------------
     prompt = ChatPromptTemplate.from_template(
         "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
     )
@@ -74,7 +68,6 @@ def init_chatbot():
     # 🎨 Scoped CSS — WorkFriend Mint Buttons
     # ------------------------------------------------------
     custom_css = """
-    /* === WorkFriend Mint Button Styling === */
     .wf-btn,
     .copy-btn {
         background-color: #00C4A7 !important;
@@ -95,14 +88,11 @@ def init_chatbot():
         gap: 6px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-
     .wf-btn:hover,
     .copy-btn:hover {
         background-color: #00A38A !important;
         transform: translateY(-1px);
     }
-
-    /* Retry — full mint, identical to Send */
     .wf-btn.wf-retry {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
@@ -112,20 +102,17 @@ def init_chatbot():
         background-color: #00A38A !important;
     }
 
-    /* Ensure copy button (HTML) matches same dimensions */
+    /* === Hard override for Copy button container === */
+    .copy-btn-wrapper {
+        width: 100% !important;
+        display: flex !important;
+    }
     #copyResponseBtn.copy-btn {
+        flex: 1 !important;
         width: 100% !important;
         height: 46px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        font-size: 0.95rem !important;
-        padding: 10px 0 !important;
     }
 
-    /* Layout consistency */
     .right-controls {
         display: flex !important;
         flex-direction: column !important;
@@ -133,7 +120,6 @@ def init_chatbot():
         gap: 10px !important;
         width: 180px !important;
     }
-
     .input-row {
         display: flex !important;
         align-items: flex-end !important;
@@ -160,12 +146,14 @@ def init_chatbot():
             )
 
             with gr.Column(elem_classes="right-controls"):
-                # Copy Button (HTML)
+                # Copy Button wrapped for sizing
                 gr.HTML(
                     """
-                    <button id="copyResponseBtn" class="copy-btn">
+                    <div class="copy-btn-wrapper">
+                      <button id="copyResponseBtn" class="copy-btn">
                         <span>📋</span> <span>Copy Last Response</span>
-                    </button>
+                      </button>
+                    </div>
                     <script>
                     setTimeout(() => {
                       const btn = document.getElementById("copyResponseBtn");
