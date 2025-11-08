@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — Mint Uniform Buttons
+# app/chatbot.py — Mint Uniform Buttons (restored layout)
 # ==========================================================
 
 import gradio as gr
@@ -18,10 +18,12 @@ def init_chatbot():
     INDEX_DIR = Path("index")
 
     openai_key = os.getenv("OPENAI_API_KEY")
-    embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
+    embedding = OpenAIEmbeddings(
+        model="text-embedding-3-small", openai_api_key=openai_key
+    )
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # --- Vector store build ---
+    # --- Vector store ---
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -56,11 +58,13 @@ def init_chatbot():
             history = history + [{"role": "assistant", "content": answer}]
             return history
         except Exception as e:
-            history = history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
+            history = history + [
+                {"role": "assistant", "content": f"⚠️ Error: {e}"}
+            ]
             return history
 
     # ==========================================================
-    # ✅ UI — Mint green buttons (all identical size)
+    # 🎨  UI — Mint green unified buttons
     # ==========================================================
     with gr.Blocks(css="""
         .input-row {
@@ -73,20 +77,22 @@ def init_chatbot():
             flex-direction: column;
             width: 180px;
         }
+        /* --- Core button styling applied to all --- */
         .copy-btn, .gr-button {
-            background: #00c4b3 !important;     /* mint */
+            background: #00c4b3 !important;
             color: white !important;
             border: none !important;
             border-radius: 6px !important;
+            padding: 10px 0 !important;
+            height: 46px !important;
+            width: 100% !important;
             font-size: 0.95rem !important;
             font-weight: 600 !important;
-            width: 100% !important;
-            height: 48px !important;
+            cursor: pointer !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             gap: 6px !important;
-            cursor: pointer !important;
             transition: filter 0.2s ease;
         }
         .copy-btn:hover, .gr-button:hover {
@@ -95,51 +101,13 @@ def init_chatbot():
     """) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
+        chatbot = gr.Chatbot(
+            label="WorkFriend Conversation",
+            type="messages",
+            height=420,
+        )
         add_feedback_below_chatbot()
 
         with gr.Row(elem_classes="input-row"):
             user_input = gr.Textbox(
-                placeholder="Ask me something...",
-                label="Your question:",
-                scale=4
-            )
-
-            with gr.Column(elem_classes="right-controls"):
-                gr.HTML(
-                    """
-                    <button id="copyResponseBtn" class="copy-btn">
-                        <span>📋</span> <span>Copy Last Response</span>
-                    </button>
-                    <script>
-                    setTimeout(() => {
-                      const btn = document.getElementById("copyResponseBtn");
-                      function getLastBotMessage() {
-                        const chats = document.querySelectorAll('.message.bot, .message.assistant');
-                        if (!chats.length) return '';
-                        return chats[chats.length - 1].textContent || '';
-                      }
-                      if (btn) {
-                        btn.addEventListener("click", () => {
-                          const text = getLastBotMessage();
-                          if (!text) return alert("No chatbot response found yet.");
-                          navigator.clipboard.writeText(text)
-                            .then(() => {
-                              btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
-                              setTimeout(() => btn.innerHTML = "<span>📋</span> <span>Copy Last Response</span>", 1500);
-                            })
-                            .catch(() => alert("Clipboard blocked ⚠️"));
-                        });
-                      }
-                    }, 1500);
-                    </script>
-                    """
-                )
-
-                actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions.get("retry")
-                send_btn = gr.Button("Send", variant="primary")
-
-        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-
-    return demo
+                placeholder
