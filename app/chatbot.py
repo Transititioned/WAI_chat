@@ -1,4 +1,3 @@
-#
 # ==========================================================
 # app/chatbot.py
 # ----------------------------------------------------------
@@ -6,6 +5,7 @@
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Copy
 # - Single feedback bar (centered)
+# - Clean, compact right column layout
 # ==========================================================
 
 import gradio as gr
@@ -80,7 +80,7 @@ def init_chatbot():
         # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # ✅ Feedback bar under chatbot
+        # ✅ Single centered feedback bar
         add_feedback_below_chatbot()
 
         # --- Input Row ---
@@ -92,21 +92,17 @@ def init_chatbot():
             )
 
             # ==================================================
-            # 📦 Right Column (Send + Retry + Copy)
+            # 📦 Right Column (Copy + Send + Retry)
             # ==================================================
             with gr.Column(scale=1, min_width=150):
-                send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (Retry only, no .render() call)
-                actions = add_user_actions(chatbot, retrieve_and_answer)
-
-                # ✅ Simple Copy Last Response button
+                # ✅ Simple Copy Last Response button – now at top
                 gr.HTML("""
                 <button id="copyResponseBtn"
                     style="background:#f97316; color:white; border:none;
                            padding:6px 12px; border-radius:6px;
                            cursor:pointer; font-size:0.9rem;
-                           width:100%; margin-top:10px;">
+                           width:100%; margin-bottom:12px;">
                     📋 Copy Last Response
                 </button>
 
@@ -132,6 +128,13 @@ def init_chatbot():
                 }, 2000);
                 </script>
                 """)
+
+                # ✅ Send button
+                send_btn = gr.Button("Send", variant="primary")
+
+                # ✅ Retry button (from modular actions)
+                actions = add_user_actions(chatbot, retrieve_and_answer)
+                retry_btn = actions.get("retry")
 
         # --- Bind send button ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
