@@ -3,8 +3,7 @@
 # ----------------------------------------------------------
 # WorkFriend Chatbot (CaveBot core)
 # - LangChain RAG over Markdown corpus
-# - Modular user actions: Retry + Copy
-# - SVG thumbs-up/down feedback below chatbot output
+# - Modular user actions: Retry + Copy + Feedback
 # - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
@@ -14,7 +13,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
+from app.chatbot_actions import add_user_actions
 
 
 def init_chatbot():
@@ -80,9 +79,6 @@ def init_chatbot():
         # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # 👍👎 Feedback below chatbot
-        feedback = add_feedback_below_chatbot()
-
         # --- Input Row ---
         with gr.Row():
             user_input = gr.Textbox(
@@ -97,9 +93,10 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (Retry button)
+                # ✅ Modular actions (Retry + Feedback)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
+                feedback = actions["feedback"]
 
                 # ✅ Inline Copy button under actions
                 gr.HTML("""
@@ -119,7 +116,6 @@ def init_chatbot():
                         📋 Copy Last Response
                     </button>
                 </div>
-
                 <script>
                 setTimeout(() => {
                   const btn = document.getElementById("copyResponseBtn");
@@ -129,7 +125,6 @@ def init_chatbot():
                     const lastEl = chatEls[chatEls.length - 1];
                     return lastEl.textContent || '';
                   }
-
                   if (btn) {
                     btn.addEventListener("click", () => {
                       const content = getLastBotMessage();
