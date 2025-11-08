@@ -1,6 +1,5 @@
-#
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Final Mint Alignment)
+# app/chatbot.py — WorkFriend Chatbot (Final Mint Uniform v1.1)
 # ==========================================================
 
 import gradio as gr
@@ -13,16 +12,24 @@ from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
+    # ------------------------------------------------------
+    # Paths & Setup
+    # ------------------------------------------------------
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
         ARTICLES_DIR = Path(".")
     INDEX_DIR = Path("index")
 
+    # ------------------------------------------------------
+    # LLM Setup
+    # ------------------------------------------------------
     openai_key = os.getenv("OPENAI_API_KEY")
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # --- Vector store ---
+    # ------------------------------------------------------
+    # Vector Store
+    # ------------------------------------------------------
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -60,14 +67,21 @@ def init_chatbot():
             history = history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
             return history
 
+    # ------------------------------------------------------
+    # Theme & Custom CSS
+    # ------------------------------------------------------
     theme = gr.themes.Default()
 
-    # ======================================================
-    # Scoped CSS — identical sizing, consistent mint color
-    # ======================================================
     custom_css = """
+    /* =====================================================
+       WorkFriend Mint Styling — Unified Buttons & Radios
+       ===================================================== */
+    button,
     .wf-btn,
-    .copy-btn {
+    .copy-btn,
+    .gr-button,
+    .gr-button-primary,
+    .gr-button-secondary {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
         border: none !important;
@@ -75,24 +89,27 @@ def init_chatbot():
         font-weight: 600 !important;
         font-size: 0.95rem !important;
         height: 46px !important;
+        width: 100% !important;
         padding: 10px 0 !important;
+        text-align: center !important;
         cursor: pointer !important;
         transition: all 0.2s ease-in-out !important;
-        width: 100% !important;
-        text-align: center !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         gap: 6px !important;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
+
+    button:hover,
     .wf-btn:hover,
-    .copy-btn:hover {
+    .copy-btn:hover,
+    .gr-button:hover {
         background-color: #00A38A !important;
         transform: translateY(-1px);
     }
 
-    /* Retry only — softer variant but same sizing */
+    /* Retry variant (outlined, same size) */
     .wf-btn.wf-retry {
         background-color: #E8F9F6 !important;
         color: #007A66 !important;
@@ -102,26 +119,43 @@ def init_chatbot():
         background-color: #D0F2EB !important;
     }
 
-    .right-controls .wf-btn,
-    .right-controls .copy-btn {
-        margin-bottom: 8px !important;
+    /* Align all buttons neatly */
+    .right-controls {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-end !important;
+        gap: 10px !important;
+        width: 180px !important;
     }
 
     .input-row {
-        display: flex;
-        align-items: flex-end;
-        gap: 1rem;
+        display: flex !important;
+        align-items: flex-end !important;
+        gap: 1rem !important;
     }
-    .right-controls {
-        display: flex;
-        flex-direction: column;
-        width: 180px;
+
+    /* Radio styling */
+    input[type="radio"] {
+        accent-color: #00C4A7 !important;
+        width: 18px !important;
+        height: 18px !important;
+        cursor: pointer !important;
+    }
+
+    label {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .gr-radio {
+        margin: 4px 0 !important;
     }
     """
 
-    # ======================================================
+    # ------------------------------------------------------
     # 🚀 Gradio Blocks UI
-    # ======================================================
+    # ------------------------------------------------------
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
@@ -136,13 +170,12 @@ def init_chatbot():
             )
 
             with gr.Column(elem_classes="right-controls"):
-                # Copy button
+                # Copy button (HTML injected)
                 gr.HTML(
                     """
                     <button id="copyResponseBtn" class="copy-btn">
                         <span>📋</span> <span>Copy Last Response</span>
                     </button>
-
                     <script>
                     setTimeout(() => {
                       const btn = document.getElementById("copyResponseBtn");
@@ -167,10 +200,12 @@ def init_chatbot():
                     """
                 )
 
+                # Action buttons (retry/send)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 if isinstance(retry_btn, gr.Button):
                     retry_btn.elem_classes = (retry_btn.elem_classes or []) + ["wf-btn", "wf-retry"]
+
                 send_btn = gr.Button("Send", elem_classes=["wf-btn"], variant="primary")
 
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
