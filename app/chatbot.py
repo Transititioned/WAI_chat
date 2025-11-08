@@ -145,3 +145,46 @@ def init_chatbot():
                     height=275,
                     elem_classes=["chatbot-area"]
                 )
+                add_feedback_below_chatbot()
+
+                user_input = gr.Textbox(
+                    placeholder="Ask me something...",
+                    label="Your question:",
+                    scale=4,
+                )
+
+            # Right Column (Buttons)
+            with gr.Column(scale=1, min_width=180, elem_classes="right-controls"):
+                copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
+
+                actions = add_user_actions(chatbot, retrieve_and_answer)
+                retry_btn = actions.get("retry")
+                if isinstance(retry_btn, gr.Button):
+                    retry_btn.elem_classes = (retry_btn.elem_classes or []) + ["wf-btn"]
+
+                send_btn = gr.Button("Send", elem_classes=["wf-btn"], variant="primary")
+
+        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
+
+        gr.HTML("""
+            <script>
+            setTimeout(() => {
+              const copyBtn = Array.from(document.querySelectorAll('button'))
+                .find(btn => btn.textContent.includes('Copy Last Response'));
+              if (!copyBtn) return;
+              copyBtn.addEventListener('click', () => {
+                const msgs = document.querySelectorAll('.message.bot, .message.assistant');
+                if (!msgs.length) return alert("No chatbot response found yet.");
+                const txt = msgs[msgs.length - 1].textContent || '';
+                navigator.clipboard.writeText(txt)
+                  .then(() => {
+                    copyBtn.innerText = '✅ Copied!';
+                    setTimeout(() => { copyBtn.innerText = '📋 Copy Last Response'; }, 1500);
+                  })
+                  .catch(() => alert("Clipboard blocked ⚠️"));
+              });
+            }, 1500);
+            </script>
+        """)
+
+    return demo
