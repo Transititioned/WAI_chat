@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Final Alpha Stable)
+# app/chatbot.py — WorkFriend Chatbot (Final Alpha Stable, Compact Fix)
 # ==========================================================
 
 import gradio as gr
@@ -81,7 +81,7 @@ def init_chatbot():
     theme = gr.themes.Default()
 
     # ======================================================
-    # 💅 Targeted CSS — make all buttons the same size
+    # 💅 Targeted CSS — compact + consistent styling
     # ======================================================
     custom_css = """
     /* Pull control zone closer to chatbot */
@@ -109,7 +109,7 @@ def init_chatbot():
         margin-top: 0 !important;
     }
 
-    /* Base button styling for consistency */
+    /* Base button styling */
     .right-controls button,
     .copy-btn {
         width: 100% !important;
@@ -132,7 +132,7 @@ def init_chatbot():
         border: none !important;
     }
 
-    /* Retry and Send buttons match height/width */
+    /* Retry and Send buttons */
     .right-controls button {
         background: #00c4a7 !important;
         color: white !important;
@@ -145,10 +145,18 @@ def init_chatbot():
         transform: translateY(-1px);
         transition: all 0.2s ease-in-out;
     }
+
+    /* ===== FIX EXCESSIVE WHITE SPACE ===== */
+    .gradio-container .gr-chatbot {
+        min-height: 280px !important;   /* compact starting size */
+        max-height: 55vh !important;    /* limit to half viewport */
+        overflow-y: auto !important;    /* scroll when needed */
+        transition: max-height 0.3s ease;
+    }
     """
 
     # ======================================================
-    # 🚀 Gradio Blocks UI (fully compatible)
+    # 🚀 Gradio Blocks UI (responsive & compact)
     # ======================================================
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
@@ -157,7 +165,7 @@ def init_chatbot():
             chatbot = gr.Chatbot(
                 label="WorkFriend Conversation",
                 type="messages",
-                height=340,
+                height=None,  # ✅ Allow CSS to control height dynamically
             )
 
             with gr.Column():
@@ -209,6 +217,7 @@ def init_chatbot():
                         retry_btn = actions.get("retry")
                         send_btn = gr.Button("Send", variant="primary")
 
+        # Bind send
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
