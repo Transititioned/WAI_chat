@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v2.2a — Fixed unterminated string)
+# app/chatbot.py — WorkFriend Chatbot (v2.3 — Prompt Bar Above the Fold)
 # ==========================================================
 
 import gradio as gr
@@ -68,28 +68,34 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 Styling — tightened layout + unified buttons
+    # 🎨 Styling — tighten layout + bring prompt above fold
     # ======================================================
     custom_css = """
-    .gradio-container, .block, .wrap, .gradio-app, .svelte-1ipelgc {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
+    /* Remove hidden padding/margins Gradio adds */
+    .gradio-container, .block, .wrap, .gradio-app, .svelte-1ipelgc, footer, .footer {
+        padding: 0 !important;
+        margin: 0 !important;
         gap: 0 !important;
+        height: auto !important;
     }
+
+    footer, .footer { display: none !important; }
+
+    /* Compact chatbot area */
     .chatbot-area {
-        max-height: 280px !important;
-        min-height: 280px !important;
+        max-height: 250px !important;
+        min-height: 250px !important;
         overflow: hidden !important;
-        margin-bottom: 0 !important;
-        padding-bottom: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     .chatbot-area > div:not(.gr-label) {
-        max-height: 280px !important;
-        min-height: 280px !important;
+        max-height: 250px !important;
+        min-height: 250px !important;
         overflow-y: auto !important;
     }
+
+    /* Buttons */
     .wf-btn, .wf-btn button {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
@@ -111,17 +117,21 @@ def init_chatbot():
         background-color: #00A38A !important;
         transform: translateY(-1px);
     }
+
+    /* Right column buttons layout */
     .right-controls {
         display: flex !important;
         flex-direction: column !important;
         gap: 8px !important;
         width: 180px !important;
     }
+
+    /* Lift the input row up */
     .input-row {
         display: flex !important;
         align-items: flex-end !important;
         gap: 1rem !important;
-        margin-top: -12px !important;
+        margin-top: -20px !important;  /* pull prompt bar up */
     }
     """
 
@@ -159,7 +169,6 @@ def init_chatbot():
 
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # ✅ Properly closed JS string
         gr.HTML(
             """
             <script>
