@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py  —  WorkFriend Chatbot (Final Alpha UX Fix)
+# app/chatbot.py  —  WorkFriend Chatbot (Stable Alpha UX Fix)
 # ==========================================================
 
 import gradio as gr
@@ -76,35 +76,48 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 THEME OVERRIDES (collapse vertical spacing)
+    # 🎨 THEME OVERRIDES  (version-safe)
     # ======================================================
-    theme = gr.themes.Default().set(
-        block_gap="4px",
-        block_padding="4px",
-        container_padding="6px",
-        spacing_size={
-            "spacing_xs": "2px",
-            "spacing_sm": "3px",
-            "spacing_md": "4px",
-            "spacing_lg": "8px",
-        },
-    )
+    try:
+        theme = gr.themes.Default().update(
+            {
+                "block_gap": "4px",
+                "block_padding": "4px",
+                "container_padding": "6px"
+            }
+        )
+    except Exception:
+        theme = gr.themes.Default()
 
     # ======================================================
-    # 💬 UI Layout (compact + responsive)
+    # 💅 CSS Compact Layout Fix (force minimal gaps)
     # ======================================================
     custom_css = """
+    /* Collapse Gradio's default vertical gaps */
+    .gr-block, .gr-column, .gr-row {
+        margin-top: 2px !important;
+        margin-bottom: 2px !important;
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+    }
+
+    /* Compact input section */
     .input-row {
         display: flex;
         align-items: flex-end;
         gap: 1rem;
-        margin-top: 2px;
+        margin-top: 0 !important;
+        padding-top: 0 !important;
     }
+
     .right-controls {
         display: flex;
         flex-direction: column;
         width: 160px;
+        margin-top: 0 !important;
     }
+
+    /* Copy button style */
     .copy-btn {
         background:#f97316;
         color:white;
@@ -121,15 +134,19 @@ def init_chatbot():
         justify-content:center;
         gap:6px;
     }
+
+    /* Ensure control zone hugs chatbot */
+    .gradio-container .gr-block:has(.feedback-wrapper) {
+        margin-bottom: -30px !important;
+    }
     """
 
     # ======================================================
-    # 🚀 Gradio Blocks
+    # 🚀 Gradio Blocks UI
     # ======================================================
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        # Column for chatbot + control zone
         with gr.Column(fill_height=True):
             chatbot = gr.Chatbot(
                 label="WorkFriend Conversation",
@@ -138,7 +155,7 @@ def init_chatbot():
                 scale=1,
             )
 
-            # Control area: feedback + input
+            # Feedback + input area
             with gr.Column(scale=0, variant="compact"):
                 add_feedback_below_chatbot()
 
@@ -150,6 +167,7 @@ def init_chatbot():
                     )
 
                     with gr.Column(elem_classes="right-controls"):
+                        # Copy Button HTML + JS
                         gr.HTML(
                             """
                             <button id="copyResponseBtn" class="copy-btn">
