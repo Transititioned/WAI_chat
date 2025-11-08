@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v2.6 — Final Above-the-Fold Alignment)
+# app/chatbot.py — WorkFriend Chatbot (v2.7 — Final White Space Elimination)
 # ==========================================================
 
 import gradio as gr
@@ -35,7 +35,7 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 Styling — Final Layout Tightening (Minimal changes from v2.5 CSS)
+    # 🎨 Styling — Final Layout Tightening (Critical Spacing Fixes)
     # ======================================================
     custom_css = """
     /* --- Global Tightening (Highly Aggressive) --- */
@@ -53,6 +53,19 @@ def init_chatbot():
         padding: 0 !important;
     }
 
+    /* --- Chatbot Container and Feedback Area Spacing FIX --- */
+    /* 🎯 CRITICAL: Target the main block wrapper holding the chatbot + feedback */
+    .gradio-app > div > div > div:nth-child(2) {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    /* 🎯 CRITICAL: Ensure no space between feedback row and input row */
+    .feedback-row { 
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 40px !important; 
+    }
+
     /* --- Chatbot Compact (Set to 275px) --- */
     .chatbot-area {
         max-height: 275px !important;
@@ -65,14 +78,6 @@ def init_chatbot():
         max-height: 275px !important;
         min-height: 275px !important;
         overflow-y: auto !important;
-    }
-
-    /* --- Feedback Row Adjustments --- */
-    /* Target the feedback row to eliminate any vertical margin */
-    .feedback-row { 
-        margin: 0 !important;
-        padding: 0 !important;
-        min-height: 40px !important; /* Ensure thumbs up/down is visible */
     }
 
     /* --- Input Row & Buttons (Keep Uniformity) --- */
@@ -103,9 +108,9 @@ def init_chatbot():
         gap: 8px !important;
         width: 180px !important;
     }
-    /* Add a class to the row holding the input and button column */
     .input-controls-row {
-        margin-top: -12px !important; /* Pull up to reduce space after feedback */
+        /* CRITICAL: Pull up to eliminate space below the feedback/chatbot area */
+        margin-top: -12px !important; 
         padding: 0 !important;
         align-items: flex-end !important;
         gap: 1rem !important;
@@ -113,7 +118,7 @@ def init_chatbot():
     """
 
     # ======================================================
-    # 🚀 Gradio UI — Fixed Layout
+    # 🚀 Gradio UI — Fixed Layout (UNCHANGED)
     # ======================================================
     theme = gr.themes.Default()
     with gr.Blocks(theme=theme, css=custom_css) as demo:
@@ -123,12 +128,11 @@ def init_chatbot():
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             type="messages",
-            height=420, # Base height maintained, CSS forces max-height to 275px
+            height=420, 
             elem_classes=["chatbot-area"]
         )
         
-        # 2. Feedback (Make sure this has elem_classes to control spacing in 'add_feedback_below_chatbot')
-        # Assuming add_feedback_below_chatbot wraps the content in a container with class 'feedback-row'
+        # 2. Feedback (Assuming add_feedback_below_chatbot uses the 'feedback-row' class)
         add_feedback_below_chatbot() 
 
         # 3. Input and Buttons (Horizontal Row for alignment)
