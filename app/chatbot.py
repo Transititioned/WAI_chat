@@ -1,11 +1,9 @@
 # ==========================================================
-# app/chatbot.py
+# app/chatbot.py (UI alignment fix)
 # ----------------------------------------------------------
-# WorkFriend Chatbot (CaveBot core)
-# - LangChain RAG over Markdown corpus
-# - Modular user actions: Retry + Copy
-# - Single feedback bar (centered)
-# - Clean, symmetric right-column layout
+# - Send button aligned horizontally with textbox
+# - Copy + Retry stacked neatly above Send
+# - Preserves all visual polish and sandbox safety
 # ==========================================================
 
 import gradio as gr
@@ -18,14 +16,11 @@ from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
-    """Initialize and return the Gradio chatbot interface."""
-    # --- Paths and setup ---
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
         ARTICLES_DIR = Path(".")
     INDEX_DIR = Path("index")
 
-    # --- LLM setup ---
     openai_key = os.getenv("OPENAI_API_KEY")
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
@@ -47,12 +42,10 @@ def init_chatbot():
     )
     retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
-    # --- Prompt template ---
     prompt = ChatPromptTemplate.from_template(
         "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
     )
 
-    # --- Retrieval & Answer ---
     def retrieve_and_answer(question: str):
         retrieved_docs = retriever.invoke(question)
         context = "\n\n".join([d.page_content for d in retrieved_docs])
@@ -60,7 +53,6 @@ def init_chatbot():
         response = llm.invoke(filled_prompt)
         return response.content
 
-    # --- Chat handler ---
     def answer_fn(message, history):
         try:
             history = history + [{"role": "user", "content": message}]
@@ -72,42 +64,36 @@ def init_chatbot():
             return history
 
     # ==========================================================
-    # ✅ Gradio Blocks App
+    # ✅ UI layout
     # ==========================================================
     with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
-
-        # ✅ Centered thumbs (feedback)
         add_feedback_below_chatbot()
 
-        # --- Input Row ---
+        # --- Compact Input Section ---
         with gr.Row():
+            # 🟧 Left side: user input
             user_input = gr.Textbox(
                 placeholder="Ask me something...",
                 label="Your question:",
                 scale=4
             )
 
-            # ==================================================
-            # 📦 Right Column (Copy + Send + Retry)
-            # ==================================================
-            with gr.Column(scale=1, min_width=150):
-
-                # ✅ Copy button with matching style
+            # 🟦 Right side: controls column (stacked)
+            with gr.Column(scale=1, min_width=160):
+                # 1️⃣ Copy button
                 gr.HTML("""
                 <button id="copyResponseBtn"
                     style="background:#f97316; color:white; border:none;
                            padding:10px 0; border-radius:6px;
                            cursor:pointer; font-size:0.95rem; font-weight:600;
-                           width:100%; margin-bottom:12px;
+                           width:100%; margin-bottom:8px;
                            display:flex; align-items:center; justify-content:center;
                            gap:6px;">
                     <span>📋</span> <span>Copy Last Response</span>
                 </button>
-
                 <script>
                 setTimeout(() => {
                   const btn = document.getElementById("copyResponseBtn");
@@ -131,12 +117,13 @@ def init_chatbot():
                 </script>
                 """)
 
-                # ✅ Send + Retry buttons (consistent sizing)
-                send_btn = gr.Button("Send", variant="primary")
+                # 2️⃣ Retry button
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
 
-        # --- Bind send button ---
+                # 3️⃣ Send button (aligned with textbox)
+                send_btn = gr.Button("Send", variant="primary")
+
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
