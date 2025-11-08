@@ -157,7 +157,7 @@ def init_chatbot():
             chatbot = gr.Chatbot(
                 label="WorkFriend Conversation",
                 type="messages",
-                height=450,
+                height=340,
             )
 
             with gr.Column():
