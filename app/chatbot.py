@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — Mint Uniform Buttons (syntax-clean)
+# app/chatbot.py — Mint Uniform Buttons (quote-safe version)
 # ==========================================================
 
 import gradio as gr
@@ -58,9 +58,7 @@ def init_chatbot():
             history = history + [{"role": "assistant", "content": answer}]
             return history
         except Exception as e:
-            history = history + [
-                {"role": "assistant", "content": f"⚠️ Error: {e}"}
-            ]
+            history = history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
             return history
 
     # ==========================================================
@@ -100,11 +98,7 @@ def init_chatbot():
     """) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(
-            label="WorkFriend Conversation",
-            type="messages",
-            height=420,
-        )
+        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages", height=420)
         add_feedback_below_chatbot()
 
         with gr.Row(elem_classes="input-row"):
@@ -115,26 +109,38 @@ def init_chatbot():
             )
 
             with gr.Column(elem_classes="right-controls"):
-                gr.HTML(
-                    """
-                    <button id="copyResponseBtn" class="copy-btn">
-                        <span>📋</span> <span>Copy Last Response</span>
-                    </button>
-                    <script>
-                    setTimeout(() => {
-                      const btn = document.getElementById("copyResponseBtn");
-                      if (!btn) return;
-                      function getLastBotMessage() {
-                        const msgs = document.querySelectorAll('.message.bot, .message.assistant');
-                        if (!msgs.length) return '';
-                        return msgs[msgs.length - 1].textContent || '';
-                      }
-                      btn.addEventListener("click", () => {
-                        const txt = getLastBotMessage();
-                        if (!txt) return alert("No chatbot response found yet.");
-                        navigator.clipboard.writeText(txt)
-                          .then(() => {
-                            btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
-                            setTimeout(() => btn.innerHTML = "<span>📋</span> <span>Copy Last Response</span>", 1500);
-                          })
-                          .catch(() => aler
+                html_code = '''
+                <button id="copyResponseBtn" class="copy-btn">
+                    <span>📋</span> <span>Copy Last Response</span>
+                </button>
+                <script>
+                setTimeout(() => {
+                  const btn = document.getElementById("copyResponseBtn");
+                  if (!btn) return;
+                  function getLastBotMessage() {
+                    const msgs = document.querySelectorAll('.message.bot, .message.assistant');
+                    if (!msgs.length) return '';
+                    return msgs[msgs.length - 1].textContent || '';
+                  }
+                  btn.addEventListener("click", () => {
+                    const txt = getLastBotMessage();
+                    if (!txt) return alert("No chatbot response found yet.");
+                    navigator.clipboard.writeText(txt)
+                      .then(() => {
+                        btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
+                        setTimeout(() => btn.innerHTML = "<span>📋</span> <span>Copy Last Response</span>", 1500);
+                      })
+                      .catch(() => alert("Clipboard blocked ⚠️"));
+                  });
+                }, 1200);
+                </script>
+                '''
+                gr.HTML(html_code)
+
+                actions = add_user_actions(chatbot, retrieve_and_answer)
+                retry_btn = actions.get("retry")
+                send_btn = gr.Button("Send", variant="primary")
+
+        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
+
+    return demo
