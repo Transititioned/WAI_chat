@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Bold & Innovative)
+# app/chatbot.py — WorkFriend Chatbot (Final Alpha Stable)
 # ==========================================================
 
 import gradio as gr
@@ -81,39 +81,10 @@ def init_chatbot():
     theme = gr.themes.Default()
 
     # ======================================================
-    # 💅 Bold & Innovative WorkFriend Brand CSS
+    # 💅 Targeted CSS — make all buttons the same size
     # ======================================================
     custom_css = """
-    /* === BUTTON STYLING === */
-    button, .copy-btn {
-        background: linear-gradient(90deg, #00C4A7 0%, #00D6B9 100%) !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: 10px !important;
-        font-weight: 700 !important;
-        font-size: 0.95rem !important;
-        padding: 12px 0 !important;
-        cursor: pointer !important;
-        width: 100% !important;
-        text-align: center !important;
-        box-shadow: 0 4px 10px rgba(0, 196, 167, 0.25);
-        transition: all 0.25s ease-in-out !important;
-        letter-spacing: 0.3px;
-    }
-
-    /* Hover animation */
-    button:hover, .copy-btn:hover {
-        transform: translateY(-2px) scale(1.02);
-        box-shadow: 0 6px 14px rgba(0, 196, 167, 0.35);
-    }
-
-    /* Consistent vertical rhythm */
-    .right-controls button,
-    .right-controls .copy-btn {
-        margin-bottom: 10px !important;
-    }
-
-    /* === LAYOUT FIXES === */
+    /* Pull control zone closer to chatbot */
     .gradio-container .gr-block:has(.feedback-wrapper) {
         padding-top: 0 !important;
         padding-bottom: 0 !important;
@@ -121,6 +92,7 @@ def init_chatbot():
         margin-bottom: -30px !important;
     }
 
+    /* Tighten input row against controls */
     .input-row {
         margin-top: 0 !important;
         padding-top: 0 !important;
@@ -129,40 +101,54 @@ def init_chatbot():
         align-items: flex-end;
     }
 
+    /* Stack buttons neatly */
     .right-controls {
         display: flex;
         flex-direction: column;
-        width: 170px;
+        width: 160px;
         margin-top: 0 !important;
     }
 
-    /* === RETRY VARIANT === */
-    .right-controls button:nth-child(2) {
-        background: white !important;
-        color: #00C4A7 !important;
-        border: 2px solid #00C4A7 !important;
-        font-weight: 700 !important;
-    }
-    .right-controls button:nth-child(2):hover {
-        background: #E8F9F6 !important;
-        box-shadow: 0 0 10px rgba(0, 196, 167, 0.3);
-    }
-
-    /* === COPY BUTTON MATCH === */
+    /* Base button styling for consistency */
+    .right-controls button,
     .copy-btn {
-        background: linear-gradient(90deg, #00C4A7 0%, #00B89B 100%) !important;
+        width: 100% !important;
+        height: 42px !important;
+        border-radius: 6px !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        margin-bottom: 8px !important;
+        cursor: pointer !important;
     }
 
-    /* === FOOTER FLATTENING === */
-    footer, .svelte-1ipelgc {
-        background: transparent !important;
-        box-shadow: none !important;
+    /* Copy button color */
+    .copy-btn {
+        background: #f97316 !important;
+        color: white !important;
         border: none !important;
+    }
+
+    /* Retry and Send buttons match height/width */
+    .right-controls button {
+        background: #00c4a7 !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    .right-controls button:hover,
+    .copy-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        transition: all 0.2s ease-in-out;
     }
     """
 
     # ======================================================
-    # 🚀 Gradio Blocks UI
+    # 🚀 Gradio Blocks UI (fully compatible)
     # ======================================================
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
@@ -223,7 +209,6 @@ def init_chatbot():
                         retry_btn = actions.get("retry")
                         send_btn = gr.Button("Send", variant="primary")
 
-        # --- Send button click handler ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
