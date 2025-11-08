@@ -3,7 +3,7 @@
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
 # ✅ Retry button aligned with input
-# ✅ Compact inline feedback (small thumbs beside text)
+# ✅ Compact feedback (not returned via user_actions)
 # ✅ Sandbox-safe inline event handling
 # ==========================================================
 
@@ -11,55 +11,10 @@ import gradio as gr
 
 
 # ----------------------------------------------------------
-# Retry Last Action
-# ----------------------------------------------------------
-def add_retry_action(chatbot, retrieve_fn):
-    """Adds a Retry Last button that re-runs the last user message."""
-    def retry_last(history):
-        if not history:
-            return history
-        last_user = None
-
-        # Handle both tuple and dict formats
-        if isinstance(history[-1], tuple):
-            last_user, _ = history[-1]
-        elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
-            last_user = history[-1]["content"]
-        else:
-            for msg in reversed(history):
-                if isinstance(msg, dict) and msg.get("role") == "user":
-                    last_user = msg["content"]
-                    break
-
-        if not last_user:
-            return history
-
-        try:
-            new_answer = retrieve_fn(last_user)
-            if isinstance(history[-1], dict):
-                history.append({"role": "assistant", "content": new_answer})
-            else:
-                history[-1] = (last_user, new_answer)
-        except Exception as e:
-            if isinstance(history[-1], dict):
-                history.append({"role": "assistant", "content": f"⚠️ Retry failed: {e}"})
-            else:
-                history[-1] = (last_user, f"⚠️ Retry failed: {e}")
-        return history
-
-    retry_btn = gr.Button("Retry Last", variant="secondary", elem_id="retry-button")
-    retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
-    return retry_btn
-
-
-# ----------------------------------------------------------
 # Feedback (👍👎) SVG Buttons – compact inline style
 # ----------------------------------------------------------
 def add_feedback_below_chatbot():
-    """
-    Adds compact thumbs-up/down feedback with text beside icons.
-    Smaller SVGs, tight spacing, inline layout.
-    """
+    """Adds compact thumbs-up/down feedback with text beside icons."""
     css = """
     <style>
     .feedback-wrapper {
@@ -127,22 +82,55 @@ def add_feedback_below_chatbot():
         </button>
     </div>
     """
-
     return gr.HTML(css + html)
 
 
 # ----------------------------------------------------------
-# Combined Actions Loader
+# Retry Last Action
+# ----------------------------------------------------------
+def add_retry_action(chatbot, retrieve_fn):
+    """Adds a Retry Last button that re-runs the last user message."""
+    def retry_last(history):
+        if not history:
+            return history
+        last_user = None
+
+        if isinstance(history[-1], tuple):
+            last_user, _ = history[-1]
+        elif isinstance(history[-1], dict) and history[-1].get("role") == "user":
+            last_user = history[-1]["content"]
+        else:
+            for msg in reversed(history):
+                if isinstance(msg, dict) and msg.get("role") == "user":
+                    last_user = msg["content"]
+                    break
+
+        if not last_user:
+            return history
+
+        try:
+            new_answer = retrieve_fn(last_user)
+            if isinstance(history[-1], dict):
+                history.append({"role": "assistant", "content": new_answer})
+            else:
+                history[-1] = (last_user, new_answer)
+        except Exception as e:
+            err = f"⚠️ Retry failed: {e}"
+            if isinstance(history[-1], dict):
+                history.append({"role": "assistant", "content": err})
+            else:
+                history[-1] = (last_user, err)
+        return history
+
+    retry_btn = gr.Button("Retry Last", variant="secondary")
+    retry_btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
+    return retry_btn
+
+
+# ----------------------------------------------------------
+# Combined Actions Loader (Retry only)
 # ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
-    """
-    Returns a dict of all user-interaction buttons:
-    Retry + Feedback (👍👎)
-    """
+    """Returns user-interaction controls (Retry only)."""
     retry_btn = add_retry_action(chatbot, retrieve_fn)
-    feedback = add_feedback_below_chatbot()
-
-    return {
-        "retry": retry_btn,
-        "feedback": feedback,
-    }
+    return {"retry": retry_btn}
