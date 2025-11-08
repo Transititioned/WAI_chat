@@ -5,7 +5,7 @@
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Copy
 # - Single feedback bar (centered)
-# - Clean, compact right column layout
+# - Clean, symmetric right-column layout
 # ==========================================================
 
 import gradio as gr
@@ -80,7 +80,7 @@ def init_chatbot():
         # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # ✅ Single centered feedback bar
+        # ✅ Centered thumbs (feedback)
         add_feedback_below_chatbot()
 
         # --- Input Row ---
@@ -96,14 +96,16 @@ def init_chatbot():
             # ==================================================
             with gr.Column(scale=1, min_width=150):
 
-                # ✅ Simple Copy Last Response button – now at top
+                # ✅ Copy button with matching style
                 gr.HTML("""
                 <button id="copyResponseBtn"
                     style="background:#f97316; color:white; border:none;
-                           padding:6px 12px; border-radius:6px;
-                           cursor:pointer; font-size:0.9rem;
-                           width:100%; margin-bottom:12px;">
-                    📋 Copy Last Response
+                           padding:10px 0; border-radius:6px;
+                           cursor:pointer; font-size:0.95rem; font-weight:600;
+                           width:100%; margin-bottom:12px;
+                           display:flex; align-items:center; justify-content:center;
+                           gap:6px;">
+                    <span>📋</span> <span>Copy Last Response</span>
                 </button>
 
                 <script>
@@ -119,9 +121,9 @@ def init_chatbot():
                     btn.addEventListener("click", () => {
                       const content = getLastBotMessage();
                       if (!content) return alert("No chatbot response found yet.");
-                      btn.textContent = "✅ Copied!";
+                      btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
                       navigator.clipboard.writeText(content).then(() => {
-                        setTimeout(() => btn.textContent = "📋 Copy Last Response", 1500);
+                        setTimeout(() => btn.innerHTML = "<span>📋</span> <span>Copy Last Response</span>", 1500);
                       }).catch(() => alert("Clipboard blocked ⚠️"));
                     });
                   }
@@ -129,10 +131,8 @@ def init_chatbot():
                 </script>
                 """)
 
-                # ✅ Send button
+                # ✅ Send + Retry buttons (consistent sizing)
                 send_btn = gr.Button("Send", variant="primary")
-
-                # ✅ Retry button (from modular actions)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
 
