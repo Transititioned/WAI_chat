@@ -1,9 +1,11 @@
 # ==========================================================
-# app/chatbot.py  — vFinal-NoGap
+# app/chatbot.py
 # ----------------------------------------------------------
-# - Hugging Face safe (no external JS)
-# - Zero white gap between sections
-# - Compact, professional alignment
+# WorkFriend Chatbot (CaveBot core)
+# - LangChain RAG over Markdown corpus
+# - Modular user actions: Retry + Copy
+# - SVG thumbs-up/down feedback below chatbot output
+# - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
 import gradio as gr
@@ -17,7 +19,6 @@ from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 def init_chatbot():
     """Initialize and return the Gradio chatbot interface."""
-
     # --- Paths and setup ---
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
@@ -29,7 +30,7 @@ def init_chatbot():
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # --- Vector store build ---
+    # --- Build vector store ---
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -71,143 +72,79 @@ def init_chatbot():
             return history
 
     # ==========================================================
-    # ✅ Gradio UI Layout
+    # ✅ Gradio Blocks App
     # ==========================================================
-    with gr.Blocks(css="""
-        /* ===== Global no-gap override ===== */
-        html, body, #root, .gradio-container {
-          margin: 0 !important;
-          padding: 0 !important;
-          height: auto !important;
-          background: white !important;
-        }
-        section, main, footer {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        .gradio-container > div:last-child {
-          margin-bottom: 0 !important;
-          padding-bottom: 0 !important;
-        }
-
-        /* ===== Base spacing reset ===== */
-        .gradio-container, .gr-block, .gr-box, .gr-form {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-
-        /* ===== Input + buttons row ===== */
-        .input-row {
-          display: flex;
-          align-items: flex-end;
-          gap: 0.75rem;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-
-        .right-controls {
-          display: flex;
-          flex-direction: column;
-          width: 160px;
-          gap: 6px;
-          margin: 0 !important;
-        }
-
-        /* ===== Buttons ===== */
-        .copy-btn {
-          background:#f97316;
-          color:white;
-          border:none;
-          padding:8px 0;
-          border-radius:6px;
-          cursor:pointer;
-          font-size:0.9rem;
-          font-weight:600;
-          width:100%;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          gap:6px;
-        }
-
-        /* ===== Text input tweaks ===== */
-        .gr-text-input textarea {
-          min-height: 44px !important;
-        }
-
-        label.svelte-1ipelgc {
-          display: none !important; /* hide "Your question" label */
-        }
-
-        /* ===== Remove internal gaps under chatbot ===== */
-        div.svelte-1ipelgc,
-        div[class*="gr-chatbot"],
-        .gr-block.gr-chatbot,
-        .gr-chatbot-container,
-        .gradio-container .gr-block {
-          margin-bottom: 0 !important;
-          padding-bottom: 0 !important;
-        }
-
-        /* ===== Hugging Face container fix ===== */
-        .gradio-container > div > div {
-          margin-bottom: 0 !important;
-          padding-bottom: 0 !important;
-        }
-    """) as demo:
+    with gr.Blocks() as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
+        # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # Feedback bar under chatbot
-        add_feedback_below_chatbot()
+        # 👍👎 Feedback below chatbot
+        feedback = add_feedback_below_chatbot()
 
         # --- Input Row ---
-        with gr.Row(elem_classes="input-row"):
+        with gr.Row():
             user_input = gr.Textbox(
                 placeholder="Ask me something...",
                 label="Your question:",
-                scale=4,
+                scale=4
             )
 
-            with gr.Column(elem_classes="right-controls"):
-                # 📋 Copy Button
-                gr.HTML("""
-                    <button id="copyResponseBtn" class="copy-btn">
-                        <span>📋</span> <span>Copy Last Response</span>
-                    </button>
-                    <script>
-                    setTimeout(() => {
-                      const btn = document.getElementById("copyResponseBtn");
-                      function getLastBotMessage() {
-                        const chatEls = document.querySelectorAll('.message.bot, .message.assistant');
-                        if (chatEls.length === 0) return '';
-                        const lastEl = chatEls[chatEls.length - 1];
-                        return lastEl.textContent || '';
-                      }
-                      if (btn) {
-                        btn.addEventListener("click", () => {
-                          const content = getLastBotMessage();
-                          if (!content) return alert("No chatbot response found yet.");
-                          btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
-                          navigator.clipboard.writeText(content)
-                            .then(() => {
-                              setTimeout(() => btn.innerHTML =
-                                "<span>📋</span> <span>Copy Last Response</span>", 1500);
-                            })
-                            .catch(() => alert("Clipboard blocked ⚠️"));
-                        });
-                      }
-                    }, 1500);
-                    </script>
-                """)
-
-                # 🔁 Retry + 🟧 Send
-                actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions.get("retry")
+            # ==================================================
+            # 📦 User Actions Column
+            # ==================================================
+            with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-        # Bind send button
+                # ✅ Modular actions (Retry button)
+                actions = add_user_actions(chatbot, retrieve_and_answer)
+                retry_btn = actions["retry"]
+
+                # ✅ Inline Copy button under actions
+                gr.HTML("""
+                <div id="toolbox" style="
+                    text-align:center;
+                    background:#fafafa;
+                    border:1px solid #eee;
+                    border-radius:10px;
+                    padding:10px;
+                    margin-top:12px;
+                    box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                    <h5 style="margin-bottom:6px; color:#333;">💼 WorkFriend Toolbox</h5>
+                    <button id="copyResponseBtn"
+                        style="background:#f97316; color:white; border:none;
+                               padding:6px 12px; border-radius:6px;
+                               cursor:pointer; font-size:0.9rem;">
+                        📋 Copy Last Response
+                    </button>
+                </div>
+
+                <script>
+                setTimeout(() => {
+                  const btn = document.getElementById("copyResponseBtn");
+                  function getLastBotMessage() {
+                    const chatEls = document.querySelectorAll('.message.bot, .message.assistant');
+                    if (chatEls.length === 0) return '';
+                    const lastEl = chatEls[chatEls.length - 1];
+                    return lastEl.textContent || '';
+                  }
+
+                  if (btn) {
+                    btn.addEventListener("click", () => {
+                      const content = getLastBotMessage();
+                      if (!content) return alert("No chatbot response found yet.");
+                      btn.textContent = "✅ Copied!";
+                      navigator.clipboard.writeText(content).then(() => {
+                        setTimeout(() => btn.textContent = "📋 Copy Last Response", 1500);
+                      }).catch(() => alert("Clipboard blocked ⚠️"));
+                    });
+                  }
+                }, 2000);
+                </script>
+                """)
+
+        # --- Bind send button ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
