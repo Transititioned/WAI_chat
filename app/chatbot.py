@@ -5,7 +5,6 @@
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Copy
 # - SVG thumbs-up/down feedback below chatbot output
-# - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
 import gradio as gr
@@ -14,6 +13,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
+# Import both functions explicitly
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
@@ -88,7 +88,7 @@ def init_chatbot():
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
         # 👍👎 Feedback correctly placed below chatbot
-        feedback = add_feedback_below_chatbot()
+        add_feedback_below_chatbot()
 
         # --- Input Row ---
         with gr.Row():
@@ -107,7 +107,7 @@ def init_chatbot():
                 # ✅ Modular actions (Retry only)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
-                # feedback = actions["feedback"]  # Disabled to prevent double thumbs
+                # DO NOT include feedback here (prevents duplicate thumbs)
 
                 # ✅ Inline Copy button under actions
                 gr.HTML("""
