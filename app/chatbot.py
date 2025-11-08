@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v2.3 — Prompt Bar Above the Fold)
+# app/chatbot.py — WorkFriend Chatbot (v2.4 — Final Fold-Fix)
 # ==========================================================
 
 import gradio as gr
@@ -68,34 +68,49 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 Styling — tighten layout + bring prompt above fold
+    # 🎨 Styling — Optimized Above-Fold Layout (Final)
     # ======================================================
     custom_css = """
-    /* Remove hidden padding/margins Gradio adds */
-    .gradio-container, .block, .wrap, .gradio-app, .svelte-1ipelgc, footer, .footer {
-        padding: 0 !important;
+    /* --- Global Layout Tightening --- */
+    .gradio-container, .block, .wrap, .gradio-app, .svelte-1ipelgc {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
         gap: 0 !important;
-        height: auto !important;
     }
 
-    footer, .footer { display: none !important; }
+    /* 🚫 Remove residual footer / bottom padding */
+    footer, .footer, .svelte-1ipelgc > div:last-child {
+        display: none !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
 
-    /* Compact chatbot area */
+    /* --- Chatbot Height Override --- */
     .chatbot-area {
-        max-height: 250px !important;
-        min-height: 250px !important;
+        max-height: 275px !important;
+        min-height: 275px !important;
         overflow: hidden !important;
         margin: 0 !important;
         padding: 0 !important;
     }
     .chatbot-area > div:not(.gr-label) {
-        max-height: 250px !important;
-        min-height: 250px !important;
+        max-height: 275px !important;
+        min-height: 275px !important;
         overflow-y: auto !important;
     }
 
-    /* Buttons */
+    /* --- Input Row Adjustment --- */
+    .input-row {
+        display: flex !important;
+        align-items: flex-end !important;
+        gap: 1rem !important;
+        margin-top: -18px !important;
+        padding-top: 0 !important;
+    }
+
+    /* --- Buttons --- */
     .wf-btn, .wf-btn button {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
@@ -118,20 +133,11 @@ def init_chatbot():
         transform: translateY(-1px);
     }
 
-    /* Right column buttons layout */
     .right-controls {
         display: flex !important;
         flex-direction: column !important;
         gap: 8px !important;
         width: 180px !important;
-    }
-
-    /* Lift the input row up */
-    .input-row {
-        display: flex !important;
-        align-items: flex-end !important;
-        gap: 1rem !important;
-        margin-top: -20px !important;  /* pull prompt bar up */
     }
     """
 
