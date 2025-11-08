@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v2.4 — Final Fold-Fix)
+# app/chatbot.py — WorkFriend Chatbot (v2.5 — Above-the-Fold Final Hybrid)
 # ==========================================================
 
 import gradio as gr
@@ -68,18 +68,16 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 Styling — Optimized Above-Fold Layout (Final)
+    # 🎨 Styling — compact, mint-green branding
     # ======================================================
     custom_css = """
-    /* --- Global Layout Tightening --- */
+    /* --- Global Tightening --- */
     .gradio-container, .block, .wrap, .gradio-app, .svelte-1ipelgc {
         padding-top: 0 !important;
         padding-bottom: 0 !important;
         margin: 0 !important;
         gap: 0 !important;
     }
-
-    /* 🚫 Remove residual footer / bottom padding */
     footer, .footer, .svelte-1ipelgc > div:last-child {
         display: none !important;
         height: 0 !important;
@@ -87,7 +85,7 @@ def init_chatbot():
         padding: 0 !important;
     }
 
-    /* --- Chatbot Height Override --- */
+    /* --- Chatbot Compact --- */
     .chatbot-area {
         max-height: 275px !important;
         min-height: 275px !important;
@@ -99,15 +97,6 @@ def init_chatbot():
         max-height: 275px !important;
         min-height: 275px !important;
         overflow-y: auto !important;
-    }
-
-    /* --- Input Row Adjustment --- */
-    .input-row {
-        display: flex !important;
-        align-items: flex-end !important;
-        gap: 1rem !important;
-        margin-top: -18px !important;
-        padding-top: 0 !important;
     }
 
     /* --- Buttons --- */
@@ -132,7 +121,6 @@ def init_chatbot():
         background-color: #00A38A !important;
         transform: translateY(-1px);
     }
-
     .right-controls {
         display: flex !important;
         flex-direction: column !important;
@@ -142,60 +130,18 @@ def init_chatbot():
     """
 
     # ======================================================
-    # 🚀 Gradio UI
+    # 🚀 Gradio UI — Above-the-Fold Layout
     # ======================================================
     theme = gr.themes.Default()
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(
-            label="WorkFriend Conversation",
-            type="messages",
-            height=420,
-            elem_classes=["chatbot-area"]
-        )
-        add_feedback_below_chatbot()
-
-        with gr.Row(elem_classes="input-row"):
-            user_input = gr.Textbox(
-                placeholder="Ask me something...",
-                label="Your question:",
-                scale=4,
-            )
-
-            with gr.Column(elem_classes="right-controls"):
-                copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
-
-                actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions.get("retry")
-                if isinstance(retry_btn, gr.Button):
-                    retry_btn.elem_classes = (retry_btn.elem_classes or []) + ["wf-btn"]
-
-                send_btn = gr.Button("Send", elem_classes=["wf-btn"], variant="primary")
-
-        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-
-        gr.HTML(
-            """
-            <script>
-            setTimeout(() => {
-              const copyBtn = Array.from(document.querySelectorAll('button'))
-                .find(btn => btn.textContent.includes('Copy Last Response'));
-              if (!copyBtn) return;
-              copyBtn.addEventListener('click', () => {
-                const msgs = document.querySelectorAll('.message.bot, .message.assistant');
-                if (!msgs.length) return alert("No chatbot response found yet.");
-                const txt = msgs[msgs.length - 1].textContent || '';
-                navigator.clipboard.writeText(txt)
-                  .then(() => {
-                    copyBtn.innerText = '✅ Copied!';
-                    setTimeout(() => { copyBtn.innerText = '📋 Copy Last Response'; }, 1500);
-                  })
-                  .catch(() => alert("Clipboard blocked ⚠️"));
-              });
-            }, 1500);
-            </script>
-            """
-        )
-
-    return demo
+        with gr.Row(equal_height=False):
+            # Left Column (Chat + Input)
+            with gr.Column(scale=4, min_width=600):
+                chatbot = gr.Chatbot(
+                    label="WorkFriend Conversation",
+                    type="messages",
+                    height=275,
+                    elem_classes=["chatbot-area"]
+                )
