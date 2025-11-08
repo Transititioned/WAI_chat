@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v1.9 — Unified Buttons, Stable Mint)
+# app/chatbot.py — WorkFriend Chatbot (v2.0 — Unified Buttons + Above-Fold Fix)
 # ==========================================================
 
 import gradio as gr
@@ -116,7 +116,11 @@ def init_chatbot():
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages", height=420)
+        chatbot = gr.Chatbot(
+            label="WorkFriend Conversation",
+            type="messages",
+            height=420,  # ignored by Gradio but kept for clarity
+        )
         add_feedback_below_chatbot()
 
         with gr.Row(elem_classes="input-row"):
@@ -130,7 +134,7 @@ def init_chatbot():
                 # ✅ Copy button now a real Gradio component
                 copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
 
-                # Retry + Send
+                # Retry + Send buttons
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 if isinstance(retry_btn, gr.Button):
@@ -141,7 +145,7 @@ def init_chatbot():
         # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # --- JS injection to handle copy ---
+        # --- JS: Copy to clipboard ---
         gr.HTML(
             """
             <script>
@@ -159,6 +163,30 @@ def init_chatbot():
                     setTimeout(() => copyBtn.innerText = '📋 Copy Last Response', 1500);
                   })
                   .catch(() => alert("Clipboard blocked ⚠️"));
+              });
+            }, 1500);
+            </script>
+            """
+        )
+
+        # --- JS: Above-Fold Height Fix ---
+        gr.HTML(
+            """
+            <script>
+            setTimeout(() => {
+              const chatbot = document.querySelector('.wrap .chatbot, .gr-chatbot, [data-testid="chatbot"]');
+              if (!chatbot) return;
+
+              // Set initial size for above-fold layout
+              chatbot.style.height = '340px';
+              chatbot.style.maxHeight = '340px';
+              chatbot.style.overflowY = 'auto';
+
+              // Adjust dynamically when resizing the viewport
+              window.addEventListener('resize', () => {
+                const vh = window.innerHeight;
+                chatbot.style.height = (vh > 900 ? '380px' : '320px');
+                chatbot.style.maxHeight = chatbot.style.height;
               });
             }, 1500);
             </script>
