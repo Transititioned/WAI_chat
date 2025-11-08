@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Final Alpha Stable)
+# app/chatbot.py — WorkFriend Chatbot (Branded Alpha Stable)
 # ==========================================================
 
 import gradio as gr
@@ -78,21 +78,52 @@ def init_chatbot():
     # ======================================================
     # 🎨 THEME OVERRIDES (version-safe)
     # ======================================================
-    theme = gr.themes.Default()  # No modern overrides
+    theme = gr.themes.Default()
 
     # ======================================================
-    # 💅 Targeted CSS — final gap fix
+    # 💅 WorkFriend.ai CSS — Unified Branding
     # ======================================================
     custom_css = """
-    /* Pull control zone closer to chatbot */
+    /* --- WorkFriend.ai Brand Buttons --- */
+    button, .copy-btn {
+        background-color: #00C4A7 !important;   /* Mint green */
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        padding: 10px 0 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease-in-out !important;
+        width: 100% !important;
+        text-align: center !important;
+    }
+
+    /* Hover animation */
+    button:hover, .copy-btn:hover {
+        background-color: #00A38A !important;   /* darker mint */
+        transform: translateY(-1px);
+    }
+
+    /* Consistent spacing */
+    .right-controls button,
+    .right-controls .copy-btn {
+        margin-bottom: 8px !important;
+    }
+
+    /* Subtle shadow for depth */
+    button, .copy-btn {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* --- Layout tightening --- */
     .gradio-container .gr-block:has(.feedback-wrapper) {
         padding-top: 0 !important;
         padding-bottom: 0 !important;
         margin-top: 0 !important;
-        margin-bottom: -30px !important; /* Tune this value if needed */
+        margin-bottom: -30px !important; /* pull controls up */
     }
 
-    /* Tighten input row against controls */
     .input-row {
         margin-top: 0 !important;
         padding-top: 0 !important;
@@ -101,7 +132,6 @@ def init_chatbot():
         align-items: flex-end;
     }
 
-    /* Stack buttons nicely */
     .right-controls {
         display: flex;
         flex-direction: column;
@@ -109,39 +139,30 @@ def init_chatbot():
         margin-top: 0 !important;
     }
 
-    /* Copy button styling */
-    .copy-btn {
-        background:#f97316;
-        color:white;
-        border:none;
-        padding:10px 0;
-        border-radius:6px;
-        cursor:pointer;
-        font-size:0.95rem;
-        font-weight:600;
-        width:100%;
-        margin-bottom:8px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap:6px;
+    /* Optional: differentiate Retry as secondary */
+    .right-controls button:nth-child(2) {
+        background-color: #E8F9F6 !important;
+        color: #007A66 !important;
+        border: 1px solid #00C4A7 !important;
+    }
+    .right-controls button:nth-child(2):hover {
+        background-color: #D0F2EB !important;
     }
     """
 
     # ======================================================
-    # 🚀 Gradio Blocks UI (fully compatible)
+    # 🚀 Gradio Blocks UI
     # ======================================================
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        with gr.Column():  # ✅ Removed fill_height
+        with gr.Column():
             chatbot = gr.Chatbot(
                 label="WorkFriend Conversation",
                 type="messages",
-                height=450,  # ✅ Constrain chatbot height
+                height=450,  # Fixed reasonable height to prevent gap
             )
 
-            # Control area (feedback + input)
             with gr.Column():
                 add_feedback_below_chatbot()
 
@@ -191,7 +212,7 @@ def init_chatbot():
                         retry_btn = actions.get("retry")
                         send_btn = gr.Button("Send", variant="primary")
 
-        # Bind send
+        # --- Send button click handler ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
