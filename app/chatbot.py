@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Final Mint v1.5 — Fixed Copy Width)
+# app/chatbot.py — WorkFriend Chatbot (v1.6 — Absolute Mint Lock)
 # ==========================================================
 
 import gradio as gr
@@ -12,9 +12,6 @@ from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
-    # ------------------------------------------------------
-    # Paths & Setup
-    # ------------------------------------------------------
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
         ARTICLES_DIR = Path(".")
@@ -24,9 +21,7 @@ def init_chatbot():
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # ------------------------------------------------------
-    # Vector Store
-    # ------------------------------------------------------
+    # --- Load articles ---
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -65,11 +60,11 @@ def init_chatbot():
             return history
 
     # ------------------------------------------------------
-    # 🎨 Scoped CSS — WorkFriend Mint Buttons
+    # 🔒 Final CSS: identical size, tone, hover — no exceptions
     # ------------------------------------------------------
     custom_css = """
     .wf-btn,
-    .copy-btn {
+    #copyResponseBtn.copy-btn {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
         border: none !important;
@@ -86,40 +81,36 @@ def init_chatbot():
         align-items: center !important;
         justify-content: center !important;
         gap: 6px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     }
+
     .wf-btn:hover,
-    .copy-btn:hover {
+    #copyResponseBtn.copy-btn:hover {
         background-color: #00A38A !important;
         transform: translateY(-1px);
     }
-    .wf-btn.wf-retry {
+
+    /* Hugging Face sandbox overrides */
+    .svelte-drum82 button,
+    .svelte-drum82 .gr-button-primary {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
         border: none !important;
     }
-    .wf-btn.wf-retry:hover {
-        background-color: #00A38A !important;
-    }
 
-    /* === Hard override for Copy button container === */
-    .copy-btn-wrapper {
-        width: 100% !important;
-        display: flex !important;
-    }
-    #copyResponseBtn.copy-btn {
-        flex: 1 !important;
-        width: 100% !important;
-        height: 46px !important;
+    .wf-btn:focus,
+    #copyResponseBtn.copy-btn:focus {
+        outline: none !important;
+        box-shadow: 0 0 0 2px rgba(0,196,167,0.35) !important;
     }
 
     .right-controls {
         display: flex !important;
         flex-direction: column !important;
-        justify-content: flex-end !important;
         gap: 10px !important;
         width: 180px !important;
     }
+
     .input-row {
         display: flex !important;
         align-items: flex-end !important;
@@ -129,9 +120,6 @@ def init_chatbot():
 
     theme = gr.themes.Default()
 
-    # ------------------------------------------------------
-    # 🚀 Gradio Blocks UI
-    # ------------------------------------------------------
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
@@ -146,14 +134,11 @@ def init_chatbot():
             )
 
             with gr.Column(elem_classes="right-controls"):
-                # Copy Button wrapped for sizing
                 gr.HTML(
                     """
-                    <div class="copy-btn-wrapper">
-                      <button id="copyResponseBtn" class="copy-btn">
+                    <button id="copyResponseBtn" class="copy-btn">
                         <span>📋</span> <span>Copy Last Response</span>
-                      </button>
-                    </div>
+                    </button>
                     <script>
                     setTimeout(() => {
                       const btn = document.getElementById("copyResponseBtn");
@@ -178,11 +163,10 @@ def init_chatbot():
                     """
                 )
 
-                # Action Buttons
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 if isinstance(retry_btn, gr.Button):
-                    retry_btn.elem_classes = (retry_btn.elem_classes or []) + ["wf-btn", "wf-retry"]
+                    retry_btn.elem_classes = (retry_btn.elem_classes or []) + ["wf-btn"]
 
                 send_btn = gr.Button("Send", elem_classes=["wf-btn"], variant="primary")
 
