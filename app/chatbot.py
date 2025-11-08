@@ -1,9 +1,11 @@
 # ==========================================================
-# app/chatbot.py – Compact layout (tight spacing)
+# app/chatbot.py
 # ----------------------------------------------------------
-# - Removed excess vertical gap
-# - Compact alignment between textbox and buttons
-# - Keeps clean stacking and horizontal alignment
+# WorkFriend Chatbot (CaveBot core)
+# - LangChain RAG over Markdown corpus
+# - Modular user actions: Retry + Copy
+# - Compact, gapless UI with centered feedback bar
+# - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
 import gradio as gr
@@ -16,11 +18,14 @@ from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
+    """Initialize and return the Gradio chatbot interface."""
+    # --- Paths and setup ---
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
         ARTICLES_DIR = Path(".")
     INDEX_DIR = Path("index")
 
+    # --- LLM setup ---
     openai_key = os.getenv("OPENAI_API_KEY")
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
@@ -42,10 +47,12 @@ def init_chatbot():
     )
     retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
+    # --- Prompt template ---
     prompt = ChatPromptTemplate.from_template(
         "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
     )
 
+    # --- Retrieval & Answer ---
     def retrieve_and_answer(question: str):
         retrieved_docs = retriever.invoke(question)
         context = "\n\n".join([d.page_content for d in retrieved_docs])
@@ -53,6 +60,7 @@ def init_chatbot():
         response = llm.invoke(filled_prompt)
         return response.content
 
+    # --- Chat handler ---
     def answer_fn(message, history):
         try:
             history = history + [{"role": "user", "content": message}]
@@ -67,12 +75,14 @@ def init_chatbot():
     # ✅ Gradio Blocks UI
     # ==========================================================
     with gr.Blocks(css="""
+        /* ========== Layout tightening ========== */
         .input-row {
             display: flex;
             align-items: flex-end;
             gap: 0.75rem;
-            margin-top: 0.25rem !important;
-            margin-bottom: 0.25rem !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            padding-top: 0 !important;
         }
         .right-controls {
             display: flex;
@@ -80,6 +90,8 @@ def init_chatbot():
             width: 160px;
             gap: 6px;
         }
+
+        /* ========== Buttons ========== */
         .copy-btn {
             background:#f97316;
             color:white;
@@ -95,16 +107,28 @@ def init_chatbot():
             justify-content:center;
             gap:6px;
         }
+
+        /* ========== Input box tweaks ========== */
         .gr-text-input textarea {
             min-height: 44px !important;
         }
         label.svelte-1ipelgc {
-            display: none !important; /* hide the "Your question" label */
+            display: none !important; /* hide "Your question" label */
+        }
+
+        /* ========== Remove Gradio default padding/gaps ========== */
+        .gr-block.gr-box, .gr-block.gr-form {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
         }
     """) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
+
+        # ✅ Feedback bar directly under chatbot
         add_feedback_below_chatbot()
 
         # --- Input Row ---
@@ -115,13 +139,14 @@ def init_chatbot():
                 scale=4,
             )
 
+            # Right column with actions
             with gr.Column(elem_classes="right-controls"):
-                # Copy button
-                gr.HTML(
-                    """
+                # 📋 Copy button
+                gr.HTML("""
                     <button id="copyResponseBtn" class="copy-btn">
                         <span>📋</span> <span>Copy Last Response</span>
                     </button>
+
                     <script>
                     setTimeout(() => {
                       const btn = document.getElementById("copyResponseBtn");
@@ -138,20 +163,22 @@ def init_chatbot():
                           btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
                           navigator.clipboard.writeText(content)
                             .then(() => {
-                              setTimeout(() => btn.innerHTML = "<span>📋</span> <span>Copy Last Response</span>", 1500);
+                              setTimeout(() => btn.innerHTML =
+                                "<span>📋</span> <span>Copy Last Response</span>", 1500);
                             })
                             .catch(() => alert("Clipboard blocked ⚠️"));
                         });
                       }
                     }, 2000);
                     </script>
-                    """
-                )
+                """)
 
+                # 🔁 Retry + 🟧 Send
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 send_btn = gr.Button("Send", variant="primary")
 
+        # --- Bind send button ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
