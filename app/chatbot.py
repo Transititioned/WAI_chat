@@ -1,5 +1,9 @@
 # ==========================================================
-# app/chatbot.py (Send aligned with textbox — fixed triple quote)
+# app/chatbot.py – Compact layout (tight spacing)
+# ----------------------------------------------------------
+# - Removed excess vertical gap
+# - Compact alignment between textbox and buttons
+# - Keeps clean stacking and horizontal alignment
 # ==========================================================
 
 import gradio as gr
@@ -66,28 +70,36 @@ def init_chatbot():
         .input-row {
             display: flex;
             align-items: flex-end;
-            gap: 1rem;
+            gap: 0.75rem;
+            margin-top: 0.25rem !important;
+            margin-bottom: 0.25rem !important;
         }
         .right-controls {
             display: flex;
             flex-direction: column;
             width: 160px;
+            gap: 6px;
         }
         .copy-btn {
             background:#f97316;
             color:white;
             border:none;
-            padding:10px 0;
+            padding:8px 0;
             border-radius:6px;
             cursor:pointer;
-            font-size:0.95rem;
+            font-size:0.9rem;
             font-weight:600;
             width:100%;
-            margin-bottom:8px;
             display:flex;
             align-items:center;
             justify-content:center;
             gap:6px;
+        }
+        .gr-text-input textarea {
+            min-height: 44px !important;
+        }
+        label.svelte-1ipelgc {
+            display: none !important; /* hide the "Your question" label */
         }
     """) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
@@ -95,20 +107,21 @@ def init_chatbot():
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
         add_feedback_below_chatbot()
 
+        # --- Input Row ---
         with gr.Row(elem_classes="input-row"):
             user_input = gr.Textbox(
                 placeholder="Ask me something...",
                 label="Your question:",
-                scale=4
+                scale=4,
             )
 
             with gr.Column(elem_classes="right-controls"):
+                # Copy button
                 gr.HTML(
                     """
                     <button id="copyResponseBtn" class="copy-btn">
                         <span>📋</span> <span>Copy Last Response</span>
                     </button>
-
                     <script>
                     setTimeout(() => {
                       const btn = document.getElementById("copyResponseBtn");
