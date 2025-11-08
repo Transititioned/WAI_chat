@@ -2,10 +2,9 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Retry button aligned with input
-# ✅ SVG thumbs-up / thumbs-down (balanced size, subtle glow)
-# ✅ Clean, minimal UX
-# ✅ Sandbox-safe inline event handling
+# ✅ Retry button aligned beside input
+# ✅ Feedback (👍👎) correctly positioned under chatbot output
+# ✅ Sandbox-safe inline JS (no external handlers)
 # ==========================================================
 
 import gradio as gr
@@ -54,29 +53,35 @@ def add_retry_action(chatbot, retrieve_fn):
 
 
 # ----------------------------------------------------------
-# Feedback (👍👎) SVG Buttons – sandbox-safe click logic
+# Feedback (👍👎) SVG Buttons – aligned just below chatbot output
 # ----------------------------------------------------------
 def add_feedback_below_chatbot():
     """
-    Adds balanced thumbs-up/down SVG buttons with sandbox-safe inline logic.
-    This version is meant to appear directly under the chatbot output.
+    Adds balanced thumbs-up/down SVG buttons, right-aligned under the chatbot.
+    Matches the working visual layout from the original chatbot.py.
     """
     css = """
     <style>
     .feedback-wrapper {
-        text-align: center;
-        margin-top: 14px;
+        text-align: right;
+        margin-top: 8px;
+        margin-right: 8px;
+    }
+    .feedback-label {
+        font-size: 0.85rem;
+        color: #666;
+        margin-right: 6px;
+        vertical-align: middle;
     }
     .feedback-container {
-        display: flex;
-        justify-content: center;
+        display: inline-flex;
         align-items: center;
-        gap: 2rem;
-        margin-top: 4px;
+        gap: 0.6rem;
+        vertical-align: middle;
     }
     .thumb-btn {
-        width: 48px;
-        height: 48px;
+        width: 28px;
+        height: 28px;
         background: none;
         border: none;
         cursor: pointer;
@@ -89,22 +94,30 @@ def add_feedback_below_chatbot():
         transition: fill 0.3s ease, filter 0.3s ease;
     }
     .thumb-btn:hover {
-        transform: scale(1.08);
+        transform: scale(1.1);
     }
     .thumb-up.active svg {
         fill: #22c55e; /* Tailwind green-500 */
-        filter: drop-shadow(0 0 5px #22c55e);
+        filter: drop-shadow(0 0 3px #22c55e);
     }
     .thumb-down.active svg {
         fill: #f97316; /* Tailwind orange-500 */
-        filter: drop-shadow(0 0 5px #f97316);
+        filter: drop-shadow(0 0 3px #f97316);
+    }
+
+    /* Responsive tweak for narrow viewports (centers feedback) */
+    @media (max-width: 768px) {
+        .feedback-wrapper {
+            text-align: center;
+            margin-right: 0;
+        }
     }
     </style>
     """
 
     html = """
     <div class="feedback-wrapper">
-        <div style='font-size:0.85rem; color:#666;'>Did this help?</div>
+        <span class="feedback-label">Did this help?</span>
         <div class="feedback-container">
             <button class="thumb-btn thumb-up" id="thumbUp" title="Helpful"
                 onclick="this.classList.toggle('active');
