@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v1.6 — Absolute Mint Lock)
+# app/chatbot.py — WorkFriend Chatbot (v1.7 — Compact Uniform Buttons)
 # ==========================================================
 
 import gradio as gr
@@ -21,7 +21,9 @@ def init_chatbot():
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # --- Load articles ---
+    # ------------------------------------------------------
+    # Vector Store
+    # ------------------------------------------------------
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -60,7 +62,7 @@ def init_chatbot():
             return history
 
     # ------------------------------------------------------
-    # 🔒 Final CSS: identical size, tone, hover — no exceptions
+    # 🎨 Compact, perfectly uniform button styling
     # ------------------------------------------------------
     custom_css = """
     .wf-btn,
@@ -70,18 +72,19 @@ def init_chatbot():
         border: none !important;
         border-radius: 8px !important;
         font-weight: 600 !important;
-        font-size: 0.95rem !important;
-        height: 46px !important;
+        font-size: 0.9rem !important;
+        height: 38px !important;           /* match the smaller native button height */
+        min-height: 38px !important;
         width: 100% !important;
-        padding: 10px 0 !important;
+        padding: 6px 0 !important;
         text-align: center !important;
         cursor: pointer !important;
         transition: all 0.2s ease-in-out !important;
-        display: flex !important;
+        display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
         gap: 6px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
     }
 
     .wf-btn:hover,
@@ -90,24 +93,10 @@ def init_chatbot():
         transform: translateY(-1px);
     }
 
-    /* Hugging Face sandbox overrides */
-    .svelte-drum82 button,
-    .svelte-drum82 .gr-button-primary {
-        background-color: #00C4A7 !important;
-        color: #ffffff !important;
-        border: none !important;
-    }
-
-    .wf-btn:focus,
-    #copyResponseBtn.copy-btn:focus {
-        outline: none !important;
-        box-shadow: 0 0 0 2px rgba(0,196,167,0.35) !important;
-    }
-
     .right-controls {
         display: flex !important;
         flex-direction: column !important;
-        gap: 10px !important;
+        gap: 8px !important;
         width: 180px !important;
     }
 
@@ -115,6 +104,12 @@ def init_chatbot():
         display: flex !important;
         align-items: flex-end !important;
         gap: 1rem !important;
+    }
+
+    /* Nuke Gradio primary/variant overrides */
+    .gr-button-primary.wf-btn, .gr-button-secondary.wf-btn {
+        background-image: none !important;
+        box-shadow: none !important;
     }
     """
 
@@ -134,6 +129,7 @@ def init_chatbot():
             )
 
             with gr.Column(elem_classes="right-controls"):
+                # Copy button
                 gr.HTML(
                     """
                     <button id="copyResponseBtn" class="copy-btn">
@@ -163,6 +159,7 @@ def init_chatbot():
                     """
                 )
 
+                # Retry and Send buttons
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 if isinstance(retry_btn, gr.Button):
