@@ -3,8 +3,7 @@
 # ----------------------------------------------------------
 # WorkFriend Chatbot (CaveBot core)
 # - LangChain RAG over Markdown corpus
-# - Modular user actions: Retry + Copy
-# - SVG thumbs-up/down feedback below chatbot output
+# - Modular user actions: Retry + Copy + Feedback
 # - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
@@ -80,8 +79,8 @@ def init_chatbot():
         # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # 👍👎 Feedback below chatbot
-        feedback = add_feedback_below_chatbot()
+        # ✅ Single clean feedback bar under chatbot
+        add_feedback_below_chatbot()
 
         # --- Input Row ---
         with gr.Row():
@@ -97,28 +96,21 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (Retry button)
+                # ✅ Modular actions (Retry)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions["retry"]
+                retry_btn = actions.get("retry")
+                if retry_btn:
+                    retry_btn.render()
 
-                # ✅ Inline Copy button under actions
+                # ✅ Simple Copy Last Response button
                 gr.HTML("""
-                <div id="toolbox" style="
-                    text-align:center;
-                    background:#fafafa;
-                    border:1px solid #eee;
-                    border-radius:10px;
-                    padding:10px;
-                    margin-top:12px;
-                    box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                    <h5 style="margin-bottom:6px; color:#333;">💼 WorkFriend Toolbox</h5>
-                    <button id="copyResponseBtn"
-                        style="background:#f97316; color:white; border:none;
-                               padding:6px 12px; border-radius:6px;
-                               cursor:pointer; font-size:0.9rem;">
-                        📋 Copy Last Response
-                    </button>
-                </div>
+                <button id="copyResponseBtn"
+                    style="background:#f97316; color:white; border:none;
+                           padding:6px 12px; border-radius:6px;
+                           cursor:pointer; font-size:0.9rem;
+                           width:100%; margin-top:10px;">
+                    📋 Copy Last Response
+                </button>
 
                 <script>
                 setTimeout(() => {
@@ -129,7 +121,6 @@ def init_chatbot():
                     const lastEl = chatEls[chatEls.length - 1];
                     return lastEl.textContent || '';
                   }
-
                   if (btn) {
                     btn.addEventListener("click", () => {
                       const content = getLastBotMessage();
@@ -148,4 +139,3 @@ def init_chatbot():
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
-
