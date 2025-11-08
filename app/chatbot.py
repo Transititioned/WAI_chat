@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v2.7 — Final White Space Elimination)
+# app/chatbot.py — WorkFriend Chatbot (v2.8 — Above-the-Fold Final)
 # ==========================================================
 
 import gradio as gr
@@ -8,11 +8,45 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
+# Assuming app/chatbot_actions.py contains the necessary functions
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
-    # ... (Setup and LLM functions remain unchanged) ...
+    # ------------------------------------------------------
+    # Paths and model setup
+    # ------------------------------------------------------
+    ARTICLES_DIR = Path("content/articles")
+    if not ARTICLES_DIR.exists():
+        ARTICLES_DIR = Path(".")
+    INDEX_DIR = Path("index")
+
+    openai_key = os.getenv("OPENAI_API_KEY")
+    embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
+
+    # ------------------------------------------------------
+    # Vector store build
+    # ------------------------------------------------------
+    docs = []
+    for md_file in ARTICLES_DIR.glob("*.md"):
+        text = md_file.read_text(encoding="utf-8").strip()
+        if not text:
+            continue
+        chunks = [text[i:i + 1500] for i in range(0, len(text), 1500)]
+        for chunk in chunks:
+            docs.append({"content": chunk, "metadata": {"source": md_file.name}})
+
+    vectordb = Chroma.from_texts(
+        texts=[d["content"] for d in docs],
+        embedding=embedding,
+        metadatas=[d["metadata"] for d in docs],
+    )
+    retriever = vectordb.as_retriever(search_kwargs={"k": 3})
+
+    prompt = ChatPromptTemplate.from_template(
+        "Use the following context to answer clearly and concisely:\n\n{context}\n\nQuestion: {question}"
+    )
 
     # ------------------------------------------------------
     # Retrieval + Response
@@ -35,35 +69,31 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 Styling — Final Layout Tightening (Critical Spacing Fixes)
+    # 🎨 Styling — Final Layout Tightening (Universal Reset)
     # ======================================================
     custom_css = """
-    /* --- Global Tightening (Highly Aggressive) --- */
-    .gradio-container, .block, .wrap, .gradio-app, .svelte-1ipelgc {
+    /* --- Universal Reset (The Nuclear Option) --- */
+    /* Resets all default padding and margin on Gradio's layout components */
+    .gradio-container *, 
+    .gradio-container, 
+    .block, 
+    .wrap, 
+    .gradio-app, 
+    .svelte-1ipelgc {
+        /* Sets vertical space to zero for most elements */
         padding-top: 0 !important;
         padding-bottom: 0 !important;
-        margin: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
         gap: 0 !important;
     }
+    
     /* Hide the Gradio footer */
     footer, .footer, .svelte-1ipelgc > div:last-child {
         display: none !important;
         height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
-    }
-
-    /* --- Chatbot Container and Feedback Area Spacing FIX --- */
-    /* 🎯 CRITICAL: Target the main block wrapper holding the chatbot + feedback */
-    .gradio-app > div > div > div:nth-child(2) {
-        margin-bottom: 0 !important;
-        padding-bottom: 0 !important;
-    }
-    /* 🎯 CRITICAL: Ensure no space between feedback row and input row */
-    .feedback-row { 
-        margin: 0 !important;
-        padding: 0 !important;
-        min-height: 40px !important; 
     }
 
     /* --- Chatbot Compact (Set to 275px) --- */
@@ -80,7 +110,21 @@ def init_chatbot():
         overflow-y: auto !important;
     }
 
-    /* --- Input Row & Buttons (Keep Uniformity) --- */
+    /* --- Feedback Row & Input Row Alignment --- */
+    .feedback-row { 
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 40px !important; 
+    }
+    .input-controls-row {
+        /* CRITICAL: Pull up to eliminate space below the feedback/chatbot area */
+        margin-top: -12px !important; 
+        padding: 0 !important;
+        align-items: flex-end !important;
+        gap: 1rem !important;
+    }
+
+    /* --- Button Styling (Kept for uniformity) --- */
     .wf-btn, .wf-btn button {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
@@ -108,17 +152,10 @@ def init_chatbot():
         gap: 8px !important;
         width: 180px !important;
     }
-    .input-controls-row {
-        /* CRITICAL: Pull up to eliminate space below the feedback/chatbot area */
-        margin-top: -12px !important; 
-        padding: 0 !important;
-        align-items: flex-end !important;
-        gap: 1rem !important;
-    }
     """
 
     # ======================================================
-    # 🚀 Gradio UI — Fixed Layout (UNCHANGED)
+    # 🚀 Gradio UI — Fixed Layout
     # ======================================================
     theme = gr.themes.Default()
     with gr.Blocks(theme=theme, css=custom_css) as demo:
@@ -132,7 +169,7 @@ def init_chatbot():
             elem_classes=["chatbot-area"]
         )
         
-        # 2. Feedback (Assuming add_feedback_below_chatbot uses the 'feedback-row' class)
+        # 2. Feedback (Assumes add_feedback_below_chatbot uses the 'feedback-row' class)
         add_feedback_below_chatbot() 
 
         # 3. Input and Buttons (Horizontal Row for alignment)
