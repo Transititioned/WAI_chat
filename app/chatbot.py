@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Branded Alpha Stable)
+# app/chatbot.py — WorkFriend Chatbot (Bold & Innovative)
 # ==========================================================
 
 import gradio as gr
@@ -81,47 +81,44 @@ def init_chatbot():
     theme = gr.themes.Default()
 
     # ======================================================
-    # 💅 WorkFriend.ai CSS — Unified Branding
+    # 💅 Bold & Innovative WorkFriend Brand CSS
     # ======================================================
     custom_css = """
-    /* --- WorkFriend.ai Brand Buttons --- */
+    /* === BUTTON STYLING === */
     button, .copy-btn {
-        background-color: #00C4A7 !important;   /* Mint green */
+        background: linear-gradient(90deg, #00C4A7 0%, #00D6B9 100%) !important;
         color: #ffffff !important;
         border: none !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
         font-size: 0.95rem !important;
-        padding: 10px 0 !important;
+        padding: 12px 0 !important;
         cursor: pointer !important;
-        transition: all 0.2s ease-in-out !important;
         width: 100% !important;
         text-align: center !important;
+        box-shadow: 0 4px 10px rgba(0, 196, 167, 0.25);
+        transition: all 0.25s ease-in-out !important;
+        letter-spacing: 0.3px;
     }
 
     /* Hover animation */
     button:hover, .copy-btn:hover {
-        background-color: #00A38A !important;   /* darker mint */
-        transform: translateY(-1px);
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 6px 14px rgba(0, 196, 167, 0.35);
     }
 
-    /* Consistent spacing */
+    /* Consistent vertical rhythm */
     .right-controls button,
     .right-controls .copy-btn {
-        margin-bottom: 8px !important;
+        margin-bottom: 10px !important;
     }
 
-    /* Subtle shadow for depth */
-    button, .copy-btn {
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    /* --- Layout tightening --- */
+    /* === LAYOUT FIXES === */
     .gradio-container .gr-block:has(.feedback-wrapper) {
         padding-top: 0 !important;
         padding-bottom: 0 !important;
         margin-top: 0 !important;
-        margin-bottom: -30px !important; /* pull controls up */
+        margin-bottom: -30px !important;
     }
 
     .input-row {
@@ -135,18 +132,32 @@ def init_chatbot():
     .right-controls {
         display: flex;
         flex-direction: column;
-        width: 160px;
+        width: 170px;
         margin-top: 0 !important;
     }
 
-    /* Optional: differentiate Retry as secondary */
+    /* === RETRY VARIANT === */
     .right-controls button:nth-child(2) {
-        background-color: #E8F9F6 !important;
-        color: #007A66 !important;
-        border: 1px solid #00C4A7 !important;
+        background: white !important;
+        color: #00C4A7 !important;
+        border: 2px solid #00C4A7 !important;
+        font-weight: 700 !important;
     }
     .right-controls button:nth-child(2):hover {
-        background-color: #D0F2EB !important;
+        background: #E8F9F6 !important;
+        box-shadow: 0 0 10px rgba(0, 196, 167, 0.3);
+    }
+
+    /* === COPY BUTTON MATCH === */
+    .copy-btn {
+        background: linear-gradient(90deg, #00C4A7 0%, #00B89B 100%) !important;
+    }
+
+    /* === FOOTER FLATTENING === */
+    footer, .svelte-1ipelgc {
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
     }
     """
 
@@ -160,7 +171,7 @@ def init_chatbot():
             chatbot = gr.Chatbot(
                 label="WorkFriend Conversation",
                 type="messages",
-                height=450,  # Fixed reasonable height to prevent gap
+                height=450,
             )
 
             with gr.Column():
