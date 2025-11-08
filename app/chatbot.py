@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — Mint Uniform Buttons (restored layout)
+# app/chatbot.py — Mint Uniform Buttons (syntax-clean)
 # ==========================================================
 
 import gradio as gr
@@ -77,7 +77,6 @@ def init_chatbot():
             flex-direction: column;
             width: 180px;
         }
-        /* --- Core button styling applied to all --- */
         .copy-btn, .gr-button {
             background: #00c4b3 !important;
             color: white !important;
@@ -110,4 +109,32 @@ def init_chatbot():
 
         with gr.Row(elem_classes="input-row"):
             user_input = gr.Textbox(
-                placeholder
+                placeholder="Ask me something...",
+                label="Your question:",
+                scale=4,
+            )
+
+            with gr.Column(elem_classes="right-controls"):
+                gr.HTML(
+                    """
+                    <button id="copyResponseBtn" class="copy-btn">
+                        <span>📋</span> <span>Copy Last Response</span>
+                    </button>
+                    <script>
+                    setTimeout(() => {
+                      const btn = document.getElementById("copyResponseBtn");
+                      if (!btn) return;
+                      function getLastBotMessage() {
+                        const msgs = document.querySelectorAll('.message.bot, .message.assistant');
+                        if (!msgs.length) return '';
+                        return msgs[msgs.length - 1].textContent || '';
+                      }
+                      btn.addEventListener("click", () => {
+                        const txt = getLastBotMessage();
+                        if (!txt) return alert("No chatbot response found yet.");
+                        navigator.clipboard.writeText(txt)
+                          .then(() => {
+                            btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
+                            setTimeout(() => btn.innerHTML = "<span>📋</span> <span>Copy Last Response</span>", 1500);
+                          })
+                          .catch(() => aler
