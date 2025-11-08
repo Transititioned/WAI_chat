@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Final Alpha Stable + Compact Chatbox)
+# app/chatbot.py — WorkFriend Chatbot (Stable Alpha – Before Compact Change)
 # ==========================================================
 
 import gradio as gr
@@ -81,63 +81,45 @@ def init_chatbot():
     theme = gr.themes.Default()
 
     # ======================================================
-    # 💅 Targeted CSS — compact & clean layout
+    # 💅 CSS – unified button widths and gap control
     # ======================================================
     custom_css = """
-    /* Pull control zone closer to chatbot */
-    .gradio-container .gr-block:has(.feedback-wrapper) {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        margin-top: 0 !important;
-        margin-bottom: -30px !important;
-    }
-
-    /* Tighten input row against controls */
     .input-row {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-        gap: 1rem;
         display: flex;
         align-items: flex-end;
+        gap: 1rem;
     }
 
-    /* Stack buttons nicely */
     .right-controls {
         display: flex;
         flex-direction: column;
-        width: 160px;
-        margin-top: 0 !important;
+        width: 180px; /* unified button width */
+        gap: 8px;
     }
 
-    /* Copy button styling */
-    .copy-btn {
-        background:#00c4b3;
-        color:white;
-        border:none;
-        padding:10px 0;
-        border-radius:6px;
-        cursor:pointer;
-        font-size:0.95rem;
-        font-weight:600;
-        width:100%;
-        margin-bottom:8px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        gap:6px;
+    .copy-btn, .gr-button {
+        background: #00c4b3 !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 600;
+        font-size: 0.95rem;
+        border-radius: 6px;
+        height: 40px;
+        cursor: pointer;
     }
 
-    /* ===== FIX EXCESSIVE WHITE SPACE / Compact Chatbox ===== */
-    .gradio-container .gr-chatbot {
-        min-height: 200px !important;   /* visible but compact */
-        max-height: 60vh !important;    /* cap at 60% of viewport */
-        overflow-y: auto !important;
-        transition: max-height 0.3s ease; /* smooth expansion */
+    .copy-btn:hover, .gr-button:hover {
+        filter: brightness(1.1);
+    }
+
+    /* Keep layout tight but readable */
+    .gradio-container .gr-block:has(.feedback-wrapper) {
+        margin-bottom: -25px !important;
     }
     """
 
     # ======================================================
-    # 🚀 Gradio Blocks UI
+    # 🚀 Gradio UI
     # ======================================================
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
@@ -146,10 +128,9 @@ def init_chatbot():
             chatbot = gr.Chatbot(
                 label="WorkFriend Conversation",
                 type="messages",
-                height=None,  # Let CSS control height dynamically
+                height=450,  # ✅ Restored original comfortable height
             )
 
-            # Control area (feedback + input)
             with gr.Column():
                 add_feedback_below_chatbot()
 
@@ -161,7 +142,7 @@ def init_chatbot():
                     )
 
                     with gr.Column(elem_classes="right-controls"):
-                        # Copy Button HTML + JS
+                        # Copy Button
                         gr.HTML(
                             """
                             <button id="copyResponseBtn" class="copy-btn">
@@ -199,7 +180,6 @@ def init_chatbot():
                         retry_btn = actions.get("retry")
                         send_btn = gr.Button("Send", variant="primary")
 
-        # Bind send
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
