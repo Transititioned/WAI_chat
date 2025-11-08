@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py  —  WorkFriend Chatbot (Stable Alpha UX Fix)
+# app/chatbot.py — WorkFriend Chatbot (Final Alpha Stable)
 # ==========================================================
 
 import gradio as gr
@@ -76,40 +76,32 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 THEME OVERRIDES  (version-safe)
+    # 🎨 THEME OVERRIDES (version-safe)
     # ======================================================
-    try:
-        theme = gr.themes.Default().update(
-            {
-                "block_gap": "4px",
-                "block_padding": "4px",
-                "container_padding": "6px"
-            }
-        )
-    except Exception:
-        theme = gr.themes.Default()
+    theme = gr.themes.Default()  # No modern overrides
 
     # ======================================================
-    # 💅 CSS Compact Layout Fix (force minimal gaps)
+    # 💅 Targeted CSS — final gap fix
     # ======================================================
     custom_css = """
-    /* Collapse Gradio's default vertical gaps */
-    .gr-block, .gr-column, .gr-row {
-        margin-top: 2px !important;
-        margin-bottom: 2px !important;
-        padding-top: 2px !important;
-        padding-bottom: 2px !important;
+    /* Pull control zone closer to chatbot */
+    .gradio-container .gr-block:has(.feedback-wrapper) {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: -30px !important; /* Tune this value if needed */
     }
 
-    /* Compact input section */
+    /* Tighten input row against controls */
     .input-row {
-        display: flex;
-        align-items: flex-end;
-        gap: 1rem;
         margin-top: 0 !important;
         padding-top: 0 !important;
+        gap: 1rem;
+        display: flex;
+        align-items: flex-end;
     }
 
+    /* Stack buttons nicely */
     .right-controls {
         display: flex;
         flex-direction: column;
@@ -117,7 +109,7 @@ def init_chatbot():
         margin-top: 0 !important;
     }
 
-    /* Copy button style */
+    /* Copy button styling */
     .copy-btn {
         background:#f97316;
         color:white;
@@ -134,29 +126,23 @@ def init_chatbot():
         justify-content:center;
         gap:6px;
     }
-
-    /* Ensure control zone hugs chatbot */
-    .gradio-container .gr-block:has(.feedback-wrapper) {
-        margin-bottom: -30px !important;
-    }
     """
 
     # ======================================================
-    # 🚀 Gradio Blocks UI
+    # 🚀 Gradio Blocks UI (fully compatible)
     # ======================================================
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        with gr.Column(fill_height=True):
+        with gr.Column():  # ✅ Removed fill_height
             chatbot = gr.Chatbot(
                 label="WorkFriend Conversation",
                 type="messages",
-                height=450,
-                scale=1,
+                height=450,  # ✅ Constrain chatbot height
             )
 
-            # Feedback + input area
-            with gr.Column(scale=0, variant="compact"):
+            # Control area (feedback + input)
+            with gr.Column():
                 add_feedback_below_chatbot()
 
                 with gr.Row(elem_classes="input-row"):
@@ -200,10 +186,12 @@ def init_chatbot():
                             """
                         )
 
+                        # Retry + Send buttons
                         actions = add_user_actions(chatbot, retrieve_and_answer)
                         retry_btn = actions.get("retry")
                         send_btn = gr.Button("Send", variant="primary")
 
+        # Bind send
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
