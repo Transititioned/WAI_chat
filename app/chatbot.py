@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py (Send aligned with textbox — fixed triple quote)
+# app/chatbot.py — WAI Chatbot Stable Mint Edition
 # ==========================================================
 
 import gradio as gr
@@ -60,7 +60,7 @@ def init_chatbot():
             return history
 
     # ==========================================================
-    # ✅ Gradio Blocks UI
+    # ✅ Gradio Blocks UI — Mint Buttons + Equal Sizing
     # ==========================================================
     with gr.Blocks(css="""
         .input-row {
@@ -71,23 +71,26 @@ def init_chatbot():
         .right-controls {
             display: flex;
             flex-direction: column;
-            width: 160px;
+            width: 180px;
         }
-        .copy-btn {
-            background:#f97316;
-            color:white;
-            border:none;
-            padding:10px 0;
-            border-radius:6px;
-            cursor:pointer;
-            font-size:0.95rem;
-            font-weight:600;
-            width:100%;
-            margin-bottom:8px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            gap:6px;
+        .copy-btn, .gr-button {
+            background: #00c4b3 !important;  /* mint green */
+            color: white !important;
+            border: none !important;
+            padding: 10px 0 !important;
+            border-radius: 6px !important;
+            cursor: pointer !important;
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
+            width: 100% !important;
+            height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+        }
+        .copy-btn:hover, .gr-button:hover {
+            filter: brightness(1.1);
         }
     """) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
