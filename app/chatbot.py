@@ -1,9 +1,9 @@
 # ==========================================================
-# app/chatbot.py  — Final gapless build
+# app/chatbot.py  — vFinal-NoGap
 # ----------------------------------------------------------
-# - Tight, professional alignment (no white canyon)
 # - Hugging Face safe (no external JS)
-# - Modular actions (Retry, Copy)
+# - Zero white gap between sections
+# - Compact, professional alignment
 # ==========================================================
 
 import gradio as gr
@@ -74,69 +74,85 @@ def init_chatbot():
     # ✅ Gradio UI Layout
     # ==========================================================
     with gr.Blocks(css="""
-        /* ========= Base spacing reset ========= */
-        .gradio-container, .gr-block, .gr-box, .gr-form {
-            margin: 0 !important;
-            padding: 0 !important;
+        /* ===== Global no-gap override ===== */
+        html, body, #root, .gradio-container {
+          margin: 0 !important;
+          padding: 0 !important;
+          height: auto !important;
+          background: white !important;
+        }
+        section, main, footer {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .gradio-container > div:last-child {
+          margin-bottom: 0 !important;
+          padding-bottom: 0 !important;
         }
 
-        /* ========= Tighten the input area ========= */
+        /* ===== Base spacing reset ===== */
+        .gradio-container, .gr-block, .gr-box, .gr-form {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* ===== Input + buttons row ===== */
         .input-row {
-            display: flex;
-            align-items: flex-end;
-            gap: 0.75rem;
-            margin: 0 !important;
-            padding: 0 !important;
+          display: flex;
+          align-items: flex-end;
+          gap: 0.75rem;
+          margin: 0 !important;
+          padding: 0 !important;
         }
 
         .right-controls {
-            display: flex;
-            flex-direction: column;
-            width: 160px;
-            gap: 6px;
-            margin: 0 !important;
+          display: flex;
+          flex-direction: column;
+          width: 160px;
+          gap: 6px;
+          margin: 0 !important;
         }
 
-        /* ========= Buttons ========= */
+        /* ===== Buttons ===== */
         .copy-btn {
-            background:#f97316;
-            color:white;
-            border:none;
-            padding:8px 0;
-            border-radius:6px;
-            cursor:pointer;
-            font-size:0.9rem;
-            font-weight:600;
-            width:100%;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            gap:6px;
+          background:#f97316;
+          color:white;
+          border:none;
+          padding:8px 0;
+          border-radius:6px;
+          cursor:pointer;
+          font-size:0.9rem;
+          font-weight:600;
+          width:100%;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:6px;
         }
 
-        /* ========= Text input tweaks ========= */
+        /* ===== Text input tweaks ===== */
         .gr-text-input textarea {
-            min-height: 44px !important;
+          min-height: 44px !important;
         }
 
         label.svelte-1ipelgc {
-            display: none !important; /* hide "Your question" label */
+          display: none !important; /* hide "Your question" label */
         }
 
-        /* ========= Remove default gap under chatbot ========= */
+        /* ===== Remove internal gaps under chatbot ===== */
         div.svelte-1ipelgc,
         div[class*="gr-chatbot"],
         .gr-block.gr-chatbot,
         .gr-chatbot-container,
         .gradio-container .gr-block {
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
+          margin-bottom: 0 !important;
+          padding-bottom: 0 !important;
         }
 
-        /* ========= Hugging Face container fix ========= */
+        /* ===== Hugging Face container fix ===== */
         .gradio-container > div > div {
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
+          margin-bottom: 0 !important;
+          padding-bottom: 0 !important;
         }
     """) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
