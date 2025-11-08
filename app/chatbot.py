@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v2.0 — Unified Buttons + Above-Fold Fix)
+# app/chatbot.py — WorkFriend Chatbot (v2.1 — Unified Buttons + Stable Height Fix)
 # ==========================================================
 
 import gradio as gr
@@ -119,7 +119,7 @@ def init_chatbot():
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             type="messages",
-            height=420,  # ignored by Gradio but kept for clarity
+            height=420,  # default; overridden below
         )
         add_feedback_below_chatbot()
 
@@ -131,10 +131,10 @@ def init_chatbot():
             )
 
             with gr.Column(elem_classes="right-controls"):
-                # ✅ Copy button now a real Gradio component
+                # ✅ Copy button (real gr.Button)
                 copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
 
-                # Retry + Send buttons
+                # Retry + Send
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 if isinstance(retry_btn, gr.Button):
@@ -169,26 +169,27 @@ def init_chatbot():
             """
         )
 
-        # --- JS: Above-Fold Height Fix ---
+        # --- JS: Persistent Height Enforcer ---
         gr.HTML(
             """
             <script>
-            setTimeout(() => {
+            function resizeChatbot() {
               const chatbot = document.querySelector('.wrap .chatbot, .gr-chatbot, [data-testid="chatbot"]');
-              if (!chatbot) return;
+              if (!chatbot) return false;
+              chatbot.style.setProperty('height', '340px', 'important');
+              chatbot.style.setProperty('maxHeight', '340px', 'important');
+              chatbot.style.setProperty('overflowY', 'auto', 'important');
+              return true;
+            }
 
-              // Set initial size for above-fold layout
-              chatbot.style.height = '340px';
-              chatbot.style.maxHeight = '340px';
-              chatbot.style.overflowY = 'auto';
+            // Reapply several times post-render to beat Gradio
+            let tries = 0;
+            const interval = setInterval(() => {
+              if (resizeChatbot() || ++tries > 10) clearInterval(interval);
+            }, 1000);
 
-              // Adjust dynamically when resizing the viewport
-              window.addEventListener('resize', () => {
-                const vh = window.innerHeight;
-                chatbot.style.height = (vh > 900 ? '380px' : '320px');
-                chatbot.style.maxHeight = chatbot.style.height;
-              });
-            }, 1500);
+            // Keep height consistent after resize
+            window.addEventListener('resize', resizeChatbot);
             </script>
             """
         )
