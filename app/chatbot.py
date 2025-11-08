@@ -1,5 +1,5 @@
-# ==========================================================
-# app/chatbot.py — WAI Chatbot Stable Mint Edition
+-# ==========================================================
+# app/chatbot.py — Mint Uniform Buttons
 # ==========================================================
 
 import gradio as gr
@@ -21,7 +21,7 @@ def init_chatbot():
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # --- Build vector store ---
+    # --- Vector store build ---
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -60,7 +60,7 @@ def init_chatbot():
             return history
 
     # ==========================================================
-    # ✅ Gradio Blocks UI — Mint Buttons + Equal Sizing
+    # ✅ UI — Mint green buttons (all identical size)
     # ==========================================================
     with gr.Blocks(css="""
         .input-row {
@@ -74,20 +74,20 @@ def init_chatbot():
             width: 180px;
         }
         .copy-btn, .gr-button {
-            background: #00c4b3 !important;  /* mint green */
+            background: #00c4b3 !important;     /* mint */
             color: white !important;
             border: none !important;
-            padding: 10px 0 !important;
             border-radius: 6px !important;
-            cursor: pointer !important;
             font-size: 0.95rem !important;
             font-weight: 600 !important;
             width: 100% !important;
-            height: 44px !important;
+            height: 48px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             gap: 6px !important;
+            cursor: pointer !important;
+            transition: filter 0.2s ease;
         }
         .copy-btn:hover, .gr-button:hover {
             filter: brightness(1.1);
@@ -111,29 +111,27 @@ def init_chatbot():
                     <button id="copyResponseBtn" class="copy-btn">
                         <span>📋</span> <span>Copy Last Response</span>
                     </button>
-
                     <script>
                     setTimeout(() => {
                       const btn = document.getElementById("copyResponseBtn");
                       function getLastBotMessage() {
-                        const chatEls = document.querySelectorAll('.message.bot, .message.assistant');
-                        if (chatEls.length === 0) return '';
-                        const lastEl = chatEls[chatEls.length - 1];
-                        return lastEl.textContent || '';
+                        const chats = document.querySelectorAll('.message.bot, .message.assistant');
+                        if (!chats.length) return '';
+                        return chats[chats.length - 1].textContent || '';
                       }
                       if (btn) {
                         btn.addEventListener("click", () => {
-                          const content = getLastBotMessage();
-                          if (!content) return alert("No chatbot response found yet.");
-                          btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
-                          navigator.clipboard.writeText(content)
+                          const text = getLastBotMessage();
+                          if (!text) return alert("No chatbot response found yet.");
+                          navigator.clipboard.writeText(text)
                             .then(() => {
+                              btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
                               setTimeout(() => btn.innerHTML = "<span>📋</span> <span>Copy Last Response</span>", 1500);
                             })
                             .catch(() => alert("Clipboard blocked ⚠️"));
                         });
                       }
-                    }, 2000);
+                    }, 1500);
                     </script>
                     """
                 )
