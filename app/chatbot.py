@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Final Mint v1.3 — Unified Buttons)
+# app/chatbot.py — WorkFriend Chatbot (Final Mint v1.4 — Uniform Copy Button)
 # ==========================================================
 
 import gradio as gr
@@ -102,7 +102,7 @@ def init_chatbot():
         transform: translateY(-1px);
     }
 
-    /* Retry now fully mint, same as Send */
+    /* Retry — full mint, identical to Send */
     .wf-btn.wf-retry {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
@@ -110,6 +110,19 @@ def init_chatbot():
     }
     .wf-btn.wf-retry:hover {
         background-color: #00A38A !important;
+    }
+
+    /* Ensure copy button (HTML) matches same dimensions */
+    #copyResponseBtn.copy-btn {
+        width: 100% !important;
+        height: 46px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        padding: 10px 0 !important;
     }
 
     /* Layout consistency */
