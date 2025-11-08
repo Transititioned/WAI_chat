@@ -3,7 +3,8 @@
 # ----------------------------------------------------------
 # WorkFriend Chatbot (CaveBot core)
 # - LangChain RAG over Markdown corpus
-# - Modular user actions: Retry + Copy + Feedback
+# - Modular user actions: Retry + Copy
+# - Single feedback bar (centered)
 # - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
@@ -79,7 +80,7 @@ def init_chatbot():
         # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # ✅ Single clean feedback bar under chatbot
+        # ✅ Single centered feedback bar
         add_feedback_below_chatbot()
 
         # --- Input Row ---
@@ -91,7 +92,7 @@ def init_chatbot():
             )
 
             # ==================================================
-            # 📦 User Actions Column
+            # 📦 Right Column (Send + Retry + Copy)
             # ==================================================
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
