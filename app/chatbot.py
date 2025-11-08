@@ -1,9 +1,9 @@
 # ==========================================================
-# app/chatbot.py (UI alignment fix)
+# app/chatbot.py (Send aligned with textbox)
 # ----------------------------------------------------------
-# - Send button aligned horizontally with textbox
-# - Copy + Retry stacked neatly above Send
-# - Preserves all visual polish and sandbox safety
+# - Send button horizontally aligned with textbox
+# - Copy + Retry stacked above
+# - Fully responsive in HF sandbox
 # ==========================================================
 
 import gradio as gr
@@ -64,66 +64,21 @@ def init_chatbot():
             return history
 
     # ==========================================================
-    # ✅ UI layout
+    # ✅ Gradio Blocks UI
     # ==========================================================
-    with gr.Blocks() as demo:
-        gr.Markdown("### 💬 WorkFriend Chatbot")
-
-        chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
-        add_feedback_below_chatbot()
-
-        # --- Compact Input Section ---
-        with gr.Row():
-            # 🟧 Left side: user input
-            user_input = gr.Textbox(
-                placeholder="Ask me something...",
-                label="Your question:",
-                scale=4
-            )
-
-            # 🟦 Right side: controls column (stacked)
-            with gr.Column(scale=1, min_width=160):
-                # 1️⃣ Copy button
-                gr.HTML("""
-                <button id="copyResponseBtn"
-                    style="background:#f97316; color:white; border:none;
-                           padding:10px 0; border-radius:6px;
-                           cursor:pointer; font-size:0.95rem; font-weight:600;
-                           width:100%; margin-bottom:8px;
-                           display:flex; align-items:center; justify-content:center;
-                           gap:6px;">
-                    <span>📋</span> <span>Copy Last Response</span>
-                </button>
-                <script>
-                setTimeout(() => {
-                  const btn = document.getElementById("copyResponseBtn");
-                  function getLastBotMessage() {
-                    const chatEls = document.querySelectorAll('.message.bot, .message.assistant');
-                    if (chatEls.length === 0) return '';
-                    const lastEl = chatEls[chatEls.length - 1];
-                    return lastEl.textContent || '';
-                  }
-                  if (btn) {
-                    btn.addEventListener("click", () => {
-                      const content = getLastBotMessage();
-                      if (!content) return alert("No chatbot response found yet.");
-                      btn.innerHTML = "<span>✅</span> <span>Copied!</span>";
-                      navigator.clipboard.writeText(content).then(() => {
-                        setTimeout(() => btn.innerHTML = "<span>📋</span> <span>Copy Last Response</span>", 1500);
-                      }).catch(() => alert("Clipboard blocked ⚠️"));
-                    });
-                  }
-                }, 2000);
-                </script>
-                """)
-
-                # 2️⃣ Retry button
-                actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions.get("retry")
-
-                # 3️⃣ Send button (aligned with textbox)
-                send_btn = gr.Button("Send", variant="primary")
-
-        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-
-    return demo
+    with gr.Blocks(css="""
+        .input-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+        }
+        .right-controls {
+            display: flex;
+            flex-direction: column;
+            width: 160px;
+        }
+        .copy-btn {
+            background:#f97316;
+            color:white;
+            border:none;
+            padding:10px 0;
