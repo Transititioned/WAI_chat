@@ -103,7 +103,7 @@ def init_chatbot():
                 # ✅ Modular actions (Retry + Feedback)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
-                feedback = actions["feedback"]
+                #feedback = actions["feedback"]
 
                 # ✅ Inline Copy button under actions
                 gr.HTML("""
