@@ -5,6 +5,7 @@
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Copy
 # - SVG thumbs-up/down feedback below chatbot output
+# - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
 import gradio as gr
@@ -13,7 +14,6 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-# Import both functions explicitly
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
@@ -27,15 +27,8 @@ def init_chatbot():
 
     # --- LLM setup ---
     openai_key = os.getenv("OPENAI_API_KEY")
-    embedding = OpenAIEmbeddings(
-        model="text-embedding-3-small",
-        openai_api_key=openai_key
-    )
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.3,
-        openai_api_key=openai_key
-    )
+    embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
     # --- Build vector store ---
     docs = []
@@ -87,8 +80,8 @@ def init_chatbot():
         # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # 👍👎 Feedback correctly placed below chatbot
-        add_feedback_below_chatbot()
+        # 👍👎 Feedback below chatbot
+        feedback = add_feedback_below_chatbot()
 
         # --- Input Row ---
         with gr.Row():
@@ -104,10 +97,9 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (Retry only)
+                # ✅ Modular actions (Retry button)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions["retry"]
-                # DO NOT include feedback here (prevents duplicate thumbs)
 
                 # ✅ Inline Copy button under actions
                 gr.HTML("""
@@ -127,6 +119,7 @@ def init_chatbot():
                         📋 Copy Last Response
                     </button>
                 </div>
+
                 <script>
                 setTimeout(() => {
                   const btn = document.getElementById("copyResponseBtn");
@@ -136,6 +129,7 @@ def init_chatbot():
                     const lastEl = chatEls[chatEls.length - 1];
                     return lastEl.textContent || '';
                   }
+
                   if (btn) {
                     btn.addEventListener("click", () => {
                       const content = getLastBotMessage();
@@ -154,3 +148,4 @@ def init_chatbot():
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
     return demo
+
