@@ -3,7 +3,7 @@
 # ----------------------------------------------------------
 # WorkFriend Chatbot (CaveBot core)
 # - LangChain RAG over Markdown corpus
-# - Modular user actions: Retry + Copy + Feedback
+# - Modular user actions: Retry + Feedback + Copy
 # - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
@@ -26,8 +26,15 @@ def init_chatbot():
 
     # --- LLM setup ---
     openai_key = os.getenv("OPENAI_API_KEY")
-    embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
+    embedding = OpenAIEmbeddings(
+        model="text-embedding-3-small",
+        openai_api_key=openai_key
+    )
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.3,
+        openai_api_key=openai_key
+    )
 
     # --- Build vector store ---
     docs = []
