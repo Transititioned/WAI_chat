@@ -5,7 +5,6 @@
 # - LangChain RAG over Markdown corpus
 # - Modular user actions: Retry + Copy
 # - Single feedback bar (centered)
-# - Sandbox-safe inline JS for Hugging Face Spaces
 # ==========================================================
 
 import gradio as gr
@@ -80,7 +79,7 @@ def init_chatbot():
         # --- Main Chatbot ---
         chatbot = gr.Chatbot(label="WorkFriend Conversation", type="messages")
 
-        # ✅ Single centered feedback bar
+        # ✅ Feedback bar under chatbot
         add_feedback_below_chatbot()
 
         # --- Input Row ---
@@ -97,11 +96,8 @@ def init_chatbot():
             with gr.Column(scale=1, min_width=150):
                 send_btn = gr.Button("Send", variant="primary")
 
-                # ✅ Modular actions (Retry)
+                # ✅ Modular actions (Retry only, no .render() call)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
-                retry_btn = actions.get("retry")
-                if retry_btn:
-                    retry_btn.render()
 
                 # ✅ Simple Copy Last Response button
                 gr.HTML("""
