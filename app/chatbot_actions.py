@@ -1,4 +1,3 @@
-#
 # ==========================================================
 # app/chatbot_actions.py
 # ----------------------------------------------------------
@@ -134,3 +133,4 @@ def add_retry_action(chatbot, retrieve_fn):
 def add_user_actions(chatbot, retrieve_fn):
     """Return retry button only — no feedback created here."""
     return {"retry": add_retry_action(chatbot, retrieve_fn)}
+
