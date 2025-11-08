@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (Final Mint Uniform v1.1)
+# app/chatbot.py — WorkFriend Chatbot (Scoped Mint Final v1.2)
 # ==========================================================
 
 import gradio as gr
@@ -12,24 +12,15 @@ from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
-    # ------------------------------------------------------
-    # Paths & Setup
-    # ------------------------------------------------------
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
         ARTICLES_DIR = Path(".")
     INDEX_DIR = Path("index")
 
-    # ------------------------------------------------------
-    # LLM Setup
-    # ------------------------------------------------------
     openai_key = os.getenv("OPENAI_API_KEY")
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # ------------------------------------------------------
-    # Vector Store
-    # ------------------------------------------------------
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -67,21 +58,13 @@ def init_chatbot():
             history = history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
             return history
 
-    # ------------------------------------------------------
-    # Theme & Custom CSS
-    # ------------------------------------------------------
-    theme = gr.themes.Default()
-
+    # ======================================================
+    # Scoped CSS — affects only WorkFriend buttons
+    # ======================================================
     custom_css = """
-    /* =====================================================
-       WorkFriend Mint Styling — Unified Buttons & Radios
-       ===================================================== */
-    button,
+    /* --- WorkFriend Mint Button Styling --- */
     .wf-btn,
-    .copy-btn,
-    .gr-button,
-    .gr-button-primary,
-    .gr-button-secondary {
+    .copy-btn {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
         border: none !important;
@@ -98,18 +81,15 @@ def init_chatbot():
         align-items: center !important;
         justify-content: center !important;
         gap: 6px !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-
-    button:hover,
     .wf-btn:hover,
-    .copy-btn:hover,
-    .gr-button:hover {
+    .copy-btn:hover {
         background-color: #00A38A !important;
         transform: translateY(-1px);
     }
 
-    /* Retry variant (outlined, same size) */
+    /* Retry variant — outline but same size */
     .wf-btn.wf-retry {
         background-color: #E8F9F6 !important;
         color: #007A66 !important;
@@ -119,7 +99,6 @@ def init_chatbot():
         background-color: #D0F2EB !important;
     }
 
-    /* Align all buttons neatly */
     .right-controls {
         display: flex !important;
         flex-direction: column !important;
@@ -133,29 +112,13 @@ def init_chatbot():
         align-items: flex-end !important;
         gap: 1rem !important;
     }
-
-    /* Radio styling */
-    input[type="radio"] {
-        accent-color: #00C4A7 !important;
-        width: 18px !important;
-        height: 18px !important;
-        cursor: pointer !important;
-    }
-
-    label {
-        display: flex !important;
-        align-items: center !important;
-        gap: 6px !important;
-    }
-
-    .gr-radio {
-        margin: 4px 0 !important;
-    }
     """
 
-    # ------------------------------------------------------
+    theme = gr.themes.Default()
+
+    # ======================================================
     # 🚀 Gradio Blocks UI
-    # ------------------------------------------------------
+    # ======================================================
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
@@ -170,7 +133,6 @@ def init_chatbot():
             )
 
             with gr.Column(elem_classes="right-controls"):
-                # Copy button (HTML injected)
                 gr.HTML(
                     """
                     <button id="copyResponseBtn" class="copy-btn">
@@ -200,7 +162,6 @@ def init_chatbot():
                     """
                 )
 
-                # Action buttons (retry/send)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 if isinstance(retry_btn, gr.Button):
