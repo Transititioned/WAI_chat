@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v1.7 — Compact Uniform Buttons)
+# app/chatbot.py — WorkFriend Chatbot (v1.8 — Uniform Buttons, Final)
 # ==========================================================
 
 import gradio as gr
@@ -21,9 +21,6 @@ def init_chatbot():
     embedding = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_key)
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, openai_api_key=openai_key)
 
-    # ------------------------------------------------------
-    # Vector Store
-    # ------------------------------------------------------
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
         text = md_file.read_text(encoding="utf-8").strip()
@@ -61,11 +58,20 @@ def init_chatbot():
             history = history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
             return history
 
-    # ------------------------------------------------------
-    # 🎨 Compact, perfectly uniform button styling
-    # ------------------------------------------------------
+    # ======================================================
+    # 🎨  CSS fix — forces all buttons (HTML + Gradio) identical
+    # ======================================================
     custom_css = """
-    .wf-btn,
+    /* Outer wrapper for Gradio buttons */
+    .wf-btn {
+        padding: 0 !important;
+        margin: 0 !important;
+        min-height: 38px !important;
+        height: 38px !important;
+    }
+
+    /* Actual clickable element inside Gradio buttons */
+    .wf-btn button,
     #copyResponseBtn.copy-btn {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
@@ -73,21 +79,22 @@ def init_chatbot():
         border-radius: 8px !important;
         font-weight: 600 !important;
         font-size: 0.9rem !important;
-        height: 38px !important;           /* match the smaller native button height */
+        height: 38px !important;
         min-height: 38px !important;
         width: 100% !important;
-        padding: 6px 0 !important;
-        text-align: center !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease-in-out !important;
-        display: inline-flex !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         gap: 6px !important;
+        line-height: 1 !important;
         box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease-in-out !important;
     }
 
-    .wf-btn:hover,
+    .wf-btn button:hover,
     #copyResponseBtn.copy-btn:hover {
         background-color: #00A38A !important;
         transform: translateY(-1px);
@@ -106,8 +113,9 @@ def init_chatbot():
         gap: 1rem !important;
     }
 
-    /* Nuke Gradio primary/variant overrides */
-    .gr-button-primary.wf-btn, .gr-button-secondary.wf-btn {
+    /* Override Gradio's internal variants */
+    .gr-button-primary.wf-btn button,
+    .gr-button-secondary.wf-btn button {
         background-image: none !important;
         box-shadow: none !important;
     }
@@ -159,7 +167,7 @@ def init_chatbot():
                     """
                 )
 
-                # Retry and Send buttons
+                # Retry + Send (Gradio)
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 if isinstance(retry_btn, gr.Button):
