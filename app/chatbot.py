@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v2.8 — Above-the-Fold Final)
+# app/chatbot.py — WorkFriend Chatbot (v3.0 — Instant ENTER + Shift+Enter)
 # ==========================================================
 
 import gradio as gr
@@ -8,7 +8,6 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-# Assuming app/chatbot_actions.py contains the necessary functions
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
@@ -72,7 +71,6 @@ def init_chatbot():
     # 🎨 Styling — Final Layout Tightening (Universal Reset)
     # ======================================================
     custom_css = """
-    /* --- Universal Reset (The Nuclear Option) --- */
     .gradio-container *, 
     .gradio-container, 
     .block, 
@@ -86,14 +84,11 @@ def init_chatbot():
         gap: 0 !important;
     }
     
-    /* Hide the Gradio footer */
     footer, .footer, .svelte-1ipelgc > div:last-child {
         display: none !important;
         height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
     }
-    /* --- Chatbot Compact (Set to 275px) --- */
+
     .chatbot-area {
         max-height: 275px !important;
         min-height: 275px !important;
@@ -106,7 +101,7 @@ def init_chatbot():
         min-height: 275px !important;
         overflow-y: auto !important;
     }
-    /* --- Feedback Row & Input Row Alignment --- */
+
     .feedback-row { 
         margin: 0 !important;
         padding: 0 !important;
@@ -118,7 +113,7 @@ def init_chatbot():
         align-items: flex-end !important;
         gap: 1rem !important;
     }
-    /* --- Button Styling (Kept for uniformity) --- */
+
     .wf-btn, .wf-btn button {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
@@ -140,6 +135,7 @@ def init_chatbot():
         background-color: #00A38A !important;
         transform: translateY(-1px);
     }
+
     .right-controls {
         display: flex !important;
         flex-direction: column !important;
@@ -155,7 +151,6 @@ def init_chatbot():
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
         
-        # 1. Chatbot Area
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             type="messages",
@@ -163,19 +158,15 @@ def init_chatbot():
             elem_classes=["chatbot-area"]
         )
         
-        # 2. Feedback
         add_feedback_below_chatbot() 
 
-        # 3. Input and Buttons (Horizontal Row for alignment)
         with gr.Row(elem_classes="input-controls-row"):
-            # Left: Text Input
             user_input = gr.Textbox(
                 placeholder="Ask me something...",
                 label="Your question:",
                 scale=4
             )
 
-            # Right: Button Column
             with gr.Column(elem_classes="right-controls", scale=0): 
                 copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
 
@@ -189,27 +180,57 @@ def init_chatbot():
         # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # ✅ ENTER submits the same function as Send
+        # ENTER submit also wired
         user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
+        # ======================================================
+        # 🧠 SHIFT+ENTER = newline
+        # 🧠 ENTER = INSTANT send (no delay)
+        # ======================================================
         gr.HTML("""
             <script>
+            // Copy button script (unchanged)
             setTimeout(() => {
               const copyBtn = Array.from(document.querySelectorAll('button'))
                 .find(btn => btn.textContent.includes('Copy Last Response'));
               if (!copyBtn) return;
               copyBtn.addEventListener('click', () => {
                 const msgs = document.querySelectorAll('.message.bot, .message.assistant');
-                if (!msgs.length) return alert("No chatbot response found yet.");
+                if (!msgs.length) return;
                 const txt = msgs[msgs.length - 1].textContent || '';
                 navigator.clipboard.writeText(txt)
                   .then(() => {
                     copyBtn.innerText = '✅ Copied!';
                     setTimeout(() => { copyBtn.innerText = '📋 Copy Last Response'; }, 1500);
-                  })
-                  .catch(() => alert("Clipboard blocked ⚠️"));
+                  });
               });
-            }, 1500);
+            }, 1000);
+            </script>
+
+            <!-- REAL FIX: SHIFT+ENTER = newline, ENTER = instant send -->
+            <script>
+            document.addEventListener("keydown", function (e) {
+                const ta = e.target;
+                if (!ta || ta.tagName !== "TEXTAREA") return;
+
+                // SHIFT+ENTER → newline
+                if (e.shiftKey && e.key === "Enter") {
+                    e.stopPropagation();
+                    return;
+                }
+
+                // ENTER → instant send
+                if (!e.shiftKey && e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const sendBtn = Array.from(document.querySelectorAll("button"))
+                        .find(btn => btn.textContent.trim() === "Send");
+
+                    if (sendBtn) sendBtn.click();
+                    return false;
+                }
+            });
             </script>
         """)
 
