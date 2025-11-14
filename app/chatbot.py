@@ -95,7 +95,6 @@ def init_chatbot():
         margin: 0 !important;
         padding: 0 !important;
     }
-
     /* --- Chatbot Compact (Set to 275px) --- */
     .chatbot-area {
         max-height: 275px !important;
@@ -109,7 +108,6 @@ def init_chatbot():
         min-height: 275px !important;
         overflow-y: auto !important;
     }
-
     /* --- Feedback Row & Input Row Alignment --- */
     .feedback-row { 
         margin: 0 !important;
@@ -123,7 +121,6 @@ def init_chatbot():
         align-items: flex-end !important;
         gap: 1rem !important;
     }
-
     /* --- Button Styling (Kept for uniformity) --- */
     .wf-btn, .wf-btn button {
         background-color: #00C4A7 !important;
@@ -179,6 +176,7 @@ def init_chatbot():
                 placeholder="Ask me something...",
                 label="Your question:",
                 scale=4,
+                submit_on_enter=True     # ✅ NEW: ENTER-to-send enabled
             )
 
             # Right: Button Column (Fixed width)
@@ -192,8 +190,11 @@ def init_chatbot():
 
                 send_btn = gr.Button("Send", elem_classes=["wf-btn"], variant="primary")
 
-        # --- Event bindings and JS remain unchanged ---
+        # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
+
+        # ✅ NEW — ENTER submits the same as clicking Send
+        user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
         gr.HTML("""
             <script>
