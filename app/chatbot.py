@@ -73,14 +73,12 @@ def init_chatbot():
     # ======================================================
     custom_css = """
     /* --- Universal Reset (The Nuclear Option) --- */
-    /* Resets all default padding and margin on Gradio's layout components */
     .gradio-container *, 
     .gradio-container, 
     .block, 
     .wrap, 
     .gradio-app, 
     .svelte-1ipelgc {
-        /* Sets vertical space to zero for most elements */
         padding-top: 0 !important;
         padding-bottom: 0 !important;
         margin-top: 0 !important;
@@ -115,7 +113,6 @@ def init_chatbot():
         min-height: 40px !important; 
     }
     .input-controls-row {
-        /* CRITICAL: Pull up to eliminate space below the feedback/chatbot area */
         margin-top: -12px !important; 
         padding: 0 !important;
         align-items: flex-end !important;
@@ -166,20 +163,19 @@ def init_chatbot():
             elem_classes=["chatbot-area"]
         )
         
-        # 2. Feedback (Assumes add_feedback_below_chatbot uses the 'feedback-row' class)
+        # 2. Feedback
         add_feedback_below_chatbot() 
 
         # 3. Input and Buttons (Horizontal Row for alignment)
         with gr.Row(elem_classes="input-controls-row"):
-            # Left: Text Input (Scales to fill space)
+            # Left: Text Input
             user_input = gr.Textbox(
                 placeholder="Ask me something...",
                 label="Your question:",
-                scale=4,
-                submit_on_enter=True     # ✅ NEW: ENTER-to-send enabled
+                scale=4
             )
 
-            # Right: Button Column (Fixed width)
+            # Right: Button Column
             with gr.Column(elem_classes="right-controls", scale=0): 
                 copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
 
@@ -193,7 +189,7 @@ def init_chatbot():
         # --- Event bindings ---
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # ✅ NEW — ENTER submits the same as clicking Send
+        # ✅ ENTER submits the same function as Send
         user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
         gr.HTML("""
