@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v3.0 — Instant ENTER + Shift+Enter)
+# app/chatbot.py — WorkFriend Chatbot (v3.1 — Mobile Patch)
 # ==========================================================
 
 import gradio as gr
@@ -145,16 +145,76 @@ def init_chatbot():
     """
 
     # ======================================================
+    # 📱 MOBILE FIX — added at end WITHOUT touching desktop
+    # ======================================================
+    custom_css += """
+    @media (max-width: 768px) {
+
+        /* Force app to behave like a single-screen layout */
+        #root, .gradio-container {
+            height: 100vh !important;
+            overflow: hidden !important;
+        }
+
+        /* Chat fills remaining vertical space */
+        #chatbot_container,
+        .chatbot-area,
+        .chatbot-area > div:not(.gr-label) {
+            max-height: calc(100vh - 180px) !important;
+            min-height: calc(100vh - 180px) !important;
+            height: calc(100vh - 180px) !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        /* Keep input visible above mobile keyboard */
+        textarea, .gradio-input, .input_box textarea {
+            position: sticky !important;
+            bottom: 0 !important;
+            background: white !important;
+            z-index: 50 !important;
+        }
+
+        /* Feedback area should not steal vertical space */
+        .feedback-wrapper {
+            margin-top: 4px !important;
+            margin-bottom: 4px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .feedback-container {
+            gap: 0.8rem !important;
+            margin-top: 2px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .thumb-btn {
+            width: 26px !important;
+            height: 26px !important;
+        }
+
+        /* Input row also non-expanding */
+        .input-controls-row {
+            flex-shrink: 0 !important;
+        }
+    }
+    """
+
+    # ======================================================
     # 🚀 Gradio UI — Fixed Layout
     # ======================================================
     theme = gr.themes.Default()
-    with gr.Blocks(theme=theme, css=custom_css) as demo:
+
+    # ⭐ PATCHED: root container now has elem_id="root"
+    with gr.Blocks(theme=theme, css=custom_css, elem_id="root") as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
         
+        # ⭐ PATCHED: chatbot gets elem_id="chatbot_container"
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             type="messages",
             height=420, 
+            elem_id="chatbot_container",
             elem_classes=["chatbot-area"]
         )
         
@@ -177,19 +237,13 @@ def init_chatbot():
 
                 send_btn = gr.Button("Send", elem_classes=["wf-btn"], variant="primary")
 
-        # --- Event bindings ---
+        # Event bindings
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-
-        # ENTER submit also wired
         user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # ======================================================
-        # 🧠 SHIFT+ENTER = newline
-        # 🧠 ENTER = INSTANT send (no delay)
-        # ======================================================
+        # SHIFT+ENTER newline, ENTER send
         gr.HTML("""
             <script>
-            // Copy button script (unchanged)
             setTimeout(() => {
               const copyBtn = Array.from(document.querySelectorAll('button'))
                 .find(btn => btn.textContent.includes('Copy Last Response'));
@@ -207,19 +261,16 @@ def init_chatbot():
             }, 1000);
             </script>
 
-            <!-- REAL FIX: SHIFT+ENTER = newline, ENTER = instant send -->
             <script>
             document.addEventListener("keydown", function (e) {
                 const ta = e.target;
                 if (!ta || ta.tagName !== "TEXTAREA") return;
 
-                // SHIFT+ENTER → newline
                 if (e.shiftKey && e.key === "Enter") {
                     e.stopPropagation();
                     return;
                 }
 
-                // ENTER → instant send
                 if (!e.shiftKey && e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
