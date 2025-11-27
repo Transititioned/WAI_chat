@@ -235,3 +235,57 @@ def init_chatbot():
         """)
 
     return demo
+
+    /* =======================================================
+   MOBILE-ONLY FIXES (desktop untouched)
+   =======================================================*/
+@media (max-width: 768px) {
+
+    /* FIX #1 — Feedback bar clipped on mobile */
+    .feedback-wrapper {
+        position: relative !important;
+        z-index: 50 !important;
+        padding-bottom: 6px !important;
+    }
+
+    .chatbot-area {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    /* FIX #2 — Rearrange input controls for mobile:
+       Prompt | Send
+       Retry below
+    */
+
+    /* Make the input controls row horizontal on mobile */
+    .input-controls-row {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-end !important;
+    }
+
+    /* Shrink the right column on mobile */
+    .right-controls {
+        width: 120px !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+
+    /* Move SEND to the top of right-controls */
+    .right-controls button:nth-child(2) {
+        order: 1 !important; /* Send first */
+    }
+
+    /* Retry below (button 1 in that column) */
+    .right-controls button:nth-child(1) {
+        order: 2 !important; /* Retry second */
+    }
+
+    /* Allow prompt to take full width on the left side */
+    .input-controls-row textarea,
+    .input-controls-row .gradio-input,
+    .input-controls-row .gradio-textbox {
+        flex: 1 !important;
+    }
+}
