@@ -285,4 +285,4 @@ def init_chatbot():
             </script>
         """)
 
-    return demo
+    return demo 
