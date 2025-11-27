@@ -234,8 +234,6 @@ def init_chatbot():
             </script>
         """)
 
-    return demo
-
     /* =======================================================
    MOBILE-ONLY FIXES (desktop untouched)
    =======================================================*/
@@ -289,3 +287,8 @@ def init_chatbot():
         flex: 1 !important;
     }
 }
+
+
+    
+    return demo
+
