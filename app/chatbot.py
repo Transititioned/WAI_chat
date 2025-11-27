@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v3.1 — Mobile Patch)
+# app/chatbot.py — WorkFriend Chatbot (v3.2 — Mobile Patch + HF Frame Hide)
 # ==========================================================
 
 import gradio as gr
@@ -145,18 +145,16 @@ def init_chatbot():
     """
 
     # ======================================================
-    # 📱 MOBILE FIX — added at end WITHOUT touching desktop
+    # 📱 MOBILE FIX — appended safely
     # ======================================================
     custom_css += """
     @media (max-width: 768px) {
 
-        /* Force app to behave like a single-screen layout */
         #root, .gradio-container {
             height: 100vh !important;
             overflow: hidden !important;
         }
 
-        /* Chat fills remaining vertical space */
         #chatbot_container,
         .chatbot-area,
         .chatbot-area > div:not(.gr-label) {
@@ -167,7 +165,6 @@ def init_chatbot():
             -webkit-overflow-scrolling: touch !important;
         }
 
-        /* Keep input visible above mobile keyboard */
         textarea, .gradio-input, .input_box textarea {
             position: sticky !important;
             bottom: 0 !important;
@@ -175,7 +172,6 @@ def init_chatbot():
             z-index: 50 !important;
         }
 
-        /* Feedback area should not steal vertical space */
         .feedback-wrapper {
             margin-top: 4px !important;
             margin-bottom: 4px !important;
@@ -193,9 +189,55 @@ def init_chatbot():
             height: 26px !important;
         }
 
-        /* Input row also non-expanding */
         .input-controls-row {
             flex-shrink: 0 !important;
+        }
+    }
+    """
+
+    # ======================================================
+    # 🎨 OPTIONAL — HIDE HUGGINGFACE FRAME (appended only)
+    # ======================================================
+    custom_css += """
+    /* ===========================================================
+       OPTIONAL UI CLEANUP — HIDE HUGGINGFACE OUTER FRAME
+       Cosmetic only — does NOT affect Gradio DOM or functionality
+       Safe for HF Spaces & mobile
+       ===========================================================*/
+
+    @media (min-width: 0px) {
+
+        header.navbar,
+        .navbar,
+        [data-testid="space-header"],
+        .flex.justify-between.items-center.px-4.py-2,
+        [class*="navbar"] {
+            display: none !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden !important;
+        }
+
+        [data-testid="space-subheader"],
+        [class*="subheader"],
+        .border-b,
+        .border-gray-200,
+        .border-neutral-200,
+        .sticky.top-0.z-50,
+        .flex.items-center.gap-2.px-4.py-2 {
+            display: none !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden !important;
+        }
+
+        body, html, #root, .gradio-container {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
         }
     }
     """
@@ -205,11 +247,9 @@ def init_chatbot():
     # ======================================================
     theme = gr.themes.Default()
 
-    # ⭐ PATCHED: root container now has elem_id="root"
     with gr.Blocks(theme=theme, css=custom_css, elem_id="root") as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
         
-        # ⭐ PATCHED: chatbot gets elem_id="chatbot_container"
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             type="messages",
