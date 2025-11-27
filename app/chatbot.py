@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v3.0 + Mobile Fix Patch)
+# app/chatbot.py — WorkFriend Chatbot (v3.0 + Mobile UX Fix)
 # ==========================================================
 
 import gradio as gr
@@ -68,7 +68,7 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 Styling — Base CSS (unchanged desktop)
+    # 🎨 Styling (Desktop baseline)
     # ======================================================
     custom_css = """
     .gradio-container *, 
@@ -83,7 +83,7 @@ def init_chatbot():
         margin-bottom: 0 !important;
         gap: 0 !important;
     }
-    
+
     footer, .footer, .svelte-1ipelgc > div:last-child {
         display: none !important;
         height: 0 !important;
@@ -100,12 +100,6 @@ def init_chatbot():
         max-height: 275px !important;
         min-height: 275px !important;
         overflow-y: auto !important;
-    }
-
-    .feedback-row { 
-        margin: 0 !important;
-        padding: 0 !important;
-        min-height: 40px !important; 
     }
 
     .input-controls-row {
@@ -132,7 +126,6 @@ def init_chatbot():
         box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
         transition: all 0.2s ease-in-out !important;
     }
-
     .wf-btn:hover, .wf-btn button:hover {
         background-color: #00A38A !important;
         transform: translateY(-1px);
@@ -144,29 +137,27 @@ def init_chatbot():
         gap: 8px !important;
         width: 180px !important;
     }
+    """
 
-
-    /* =======================================================
-       📱 MOBILE-ONLY FIXES (desktop untouched)
-       =======================================================*/
+    # ======================================================
+    # 📱 MOBILE-ONLY PATCH (Send beside prompt + feedback spacing fix)
+    # ======================================================
+    custom_css += """
     @media (max-width: 768px) {
 
-        /* FIX #1 — Feedback bar clipped on mobile */
+        /* Fix feedback icons clipping */
         .feedback-wrapper {
+            padding-bottom: 16px !important;
             position: relative !important;
             z-index: 50 !important;
-            padding-bottom: 6px !important;
         }
 
         .chatbot-area {
             overflow-y: auto !important;
-            overflow-x: hidden !important;
+            padding-bottom: 20px !important; /* extra breathing room */
         }
 
-        /* FIX #2 — Mobile layout:
-           Prompt (left) | Send (right)
-           Retry underneath Send
-        */
+        /* Layout: Prompt (left) | Send (right), Retry below */
         .input-controls-row {
             display: flex !important;
             flex-direction: row !important;
@@ -179,48 +170,40 @@ def init_chatbot():
             gap: 6px !important;
         }
 
-        /* SEND = 2nd button in column → move to top */
+        /* SEND on top */
         .right-controls button:nth-child(2) {
             order: 1 !important;
         }
 
-        /* RETRY = 1st button → move under SEND */
+        /* RETRY below */
         .right-controls button:nth-child(1) {
             order: 2 !important;
         }
 
-        /* Make prompt stretch wider */
+        /* Prompt expands to full width */
         .input-controls-row textarea,
         .input-controls-row .gradio-input,
         .input-controls-row .gradio-textbox {
             flex: 1 !important;
         }
-
-        @media (max-width: 768px) {
-
-    /* Extra space so thumbs aren’t clipped */
-    .feedback-wrapper {
-        padding-bottom: 16px !important; /* previously 6px */
-    }
-    
     }
     """
 
     # ======================================================
-    # 🚀 Gradio UI — Fixed Layout
+    # 🚀 Gradio UI
     # ======================================================
     theme = gr.themes.Default()
     with gr.Blocks(theme=theme, css=custom_css) as demo:
         gr.Markdown("### 💬 WorkFriend Chatbot")
-        
+
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             type="messages",
-            height=420, 
+            height=420,
             elem_classes=["chatbot-area"]
         )
-        
-        add_feedback_below_chatbot() 
+
+        add_feedback_below_chatbot()
 
         with gr.Row(elem_classes="input-controls-row"):
             user_input = gr.Textbox(
@@ -229,7 +212,7 @@ def init_chatbot():
                 scale=4
             )
 
-            with gr.Column(elem_classes="right-controls", scale=0): 
+            with gr.Column(elem_classes="right-controls", scale=0):
                 copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
@@ -239,30 +222,11 @@ def init_chatbot():
 
                 send_btn = gr.Button("Send", elem_classes=["wf-btn"], variant="primary")
 
-        # Event bindings
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
         user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # SHIFT+ENTER newline, ENTER send
+        # Enter / Shift+Enter behaviour
         gr.HTML("""
-            <script>
-            setTimeout(() => {
-              const copyBtn = Array.from(document.querySelectorAll('button'))
-                .find(btn => btn.textContent.includes('Copy Last Response'));
-              if (!copyBtn) return;
-              copyBtn.addEventListener('click', () => {
-                const msgs = document.querySelectorAll('.message.bot, .message.assistant');
-                if (!msgs.length) return;
-                const txt = msgs[msgs.length - 1].textContent || '';
-                navigator.clipboard.writeText(txt)
-                  .then(() => {
-                    copyBtn.innerText = '✅ Copied!';
-                    setTimeout(() => { copyBtn.innerText = '📋 Copy Last Response'; }, 1500);
-                  });
-              });
-            }, 1000);
-            </script>
-
             <script>
             document.addEventListener("keydown", function (e) {
                 const ta = e.target;
@@ -276,10 +240,9 @@ def init_chatbot():
                 if (!e.shiftKey && e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
-
-                    const sendBtn = Array.from(document.querySelectorAll("button"))
-                        .find(btn => btn.textContent.trim() === "Send");
-
+                    const sendBtn = Array.from(
+                        document.querySelectorAll("button")
+                    ).find(btn => btn.textContent.trim() === "Send");
                     if (sendBtn) sendBtn.click();
                     return false;
                 }
