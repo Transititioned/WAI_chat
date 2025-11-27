@@ -195,6 +195,14 @@ def init_chatbot():
         .input-controls-row .gradio-textbox {
             flex: 1 !important;
         }
+
+        @media (max-width: 768px) {
+
+    /* Extra space so thumbs aren’t clipped */
+    .feedback-wrapper {
+        padding-bottom: 16px !important; /* previously 6px */
+    }
+    
     }
     """
 
