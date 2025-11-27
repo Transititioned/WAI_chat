@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v3.0 — Instant ENTER + Shift+Enter)
+# app/chatbot.py — WorkFriend Chatbot (v3.0 + Mobile Fix Patch)
 # ==========================================================
 
 import gradio as gr
@@ -68,7 +68,7 @@ def init_chatbot():
             return history
 
     # ======================================================
-    # 🎨 Styling — Final Layout Tightening (Universal Reset)
+    # 🎨 Styling — Base CSS (unchanged desktop)
     # ======================================================
     custom_css = """
     .gradio-container *, 
@@ -107,6 +107,7 @@ def init_chatbot():
         padding: 0 !important;
         min-height: 40px !important; 
     }
+
     .input-controls-row {
         margin-top: -12px !important; 
         padding: 0 !important;
@@ -131,6 +132,7 @@ def init_chatbot():
         box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
         transition: all 0.2s ease-in-out !important;
     }
+
     .wf-btn:hover, .wf-btn button:hover {
         background-color: #00A38A !important;
         transform: translateY(-1px);
@@ -141,6 +143,58 @@ def init_chatbot():
         flex-direction: column !important;
         gap: 8px !important;
         width: 180px !important;
+    }
+
+
+    /* =======================================================
+       📱 MOBILE-ONLY FIXES (desktop untouched)
+       =======================================================*/
+    @media (max-width: 768px) {
+
+        /* FIX #1 — Feedback bar clipped on mobile */
+        .feedback-wrapper {
+            position: relative !important;
+            z-index: 50 !important;
+            padding-bottom: 6px !important;
+        }
+
+        .chatbot-area {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+
+        /* FIX #2 — Mobile layout:
+           Prompt (left) | Send (right)
+           Retry underneath Send
+        */
+        .input-controls-row {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: flex-end !important;
+        }
+
+        .right-controls {
+            width: 120px !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+        }
+
+        /* SEND = 2nd button in column → move to top */
+        .right-controls button:nth-child(2) {
+            order: 1 !important;
+        }
+
+        /* RETRY = 1st button → move under SEND */
+        .right-controls button:nth-child(1) {
+            order: 2 !important;
+        }
+
+        /* Make prompt stretch wider */
+        .input-controls-row textarea,
+        .input-controls-row .gradio-input,
+        .input-controls-row .gradio-textbox {
+            flex: 1 !important;
+        }
     }
     """
 
@@ -177,19 +231,13 @@ def init_chatbot():
 
                 send_btn = gr.Button("Send", elem_classes=["wf-btn"], variant="primary")
 
-        # --- Event bindings ---
+        # Event bindings
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-
-        # ENTER submit also wired
         user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # ======================================================
-        # 🧠 SHIFT+ENTER = newline
-        # 🧠 ENTER = INSTANT send (no delay)
-        # ======================================================
+        # SHIFT+ENTER newline, ENTER send
         gr.HTML("""
             <script>
-            // Copy button script (unchanged)
             setTimeout(() => {
               const copyBtn = Array.from(document.querySelectorAll('button'))
                 .find(btn => btn.textContent.includes('Copy Last Response'));
@@ -207,19 +255,16 @@ def init_chatbot():
             }, 1000);
             </script>
 
-            <!-- REAL FIX: SHIFT+ENTER = newline, ENTER = instant send -->
             <script>
             document.addEventListener("keydown", function (e) {
                 const ta = e.target;
                 if (!ta || ta.tagName !== "TEXTAREA") return;
 
-                // SHIFT+ENTER → newline
                 if (e.shiftKey && e.key === "Enter") {
                     e.stopPropagation();
                     return;
                 }
 
-                // ENTER → instant send
                 if (!e.shiftKey && e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
@@ -234,61 +279,4 @@ def init_chatbot():
             </script>
         """)
 
-    /* =======================================================
-   MOBILE-ONLY FIXES (desktop untouched)
-   =======================================================*/
-@media (max-width: 768px) {
-
-    /* FIX #1 — Feedback bar clipped on mobile */
-    .feedback-wrapper {
-        position: relative !important;
-        z-index: 50 !important;
-        padding-bottom: 6px !important;
-    }
-
-    .chatbot-area {
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-    }
-
-    /* FIX #2 — Rearrange input controls for mobile:
-       Prompt | Send
-       Retry below
-    */
-
-    /* Make the input controls row horizontal on mobile */
-    .input-controls-row {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: flex-end !important;
-    }
-
-    /* Shrink the right column on mobile */
-    .right-controls {
-        width: 120px !important;
-        flex-direction: column !important;
-        gap: 6px !important;
-    }
-
-    /* Move SEND to the top of right-controls */
-    .right-controls button:nth-child(2) {
-        order: 1 !important; /* Send first */
-    }
-
-    /* Retry below (button 1 in that column) */
-    .right-controls button:nth-child(1) {
-        order: 2 !important; /* Retry second */
-    }
-
-    /* Allow prompt to take full width on the left side */
-    .input-controls-row textarea,
-    .input-controls-row .gradio-input,
-    .input-controls-row .gradio-textbox {
-        flex: 1 !important;
-    }
-}
-
-
-    
     return demo
-
