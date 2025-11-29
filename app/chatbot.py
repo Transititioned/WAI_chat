@@ -1,10 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v3.1 – Wake-Up Guard)
-# ==========================================================
-# CHANGE CONTROL:
-# • v3.1 adds ONLY the “WAI is waking up…” UX guard + poll.
-# • Does NOT modify any existing behaviour or styling.
-# • All additions are clearly marked so they can be removed.
+# app/chatbot.py — WorkFriend Chatbot (v3.1 - Wake-Up Fix)
 # ==========================================================
 
 import gradio as gr
@@ -17,9 +12,8 @@ from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
-
     # ------------------------------------------------------
-    # Paths and model setup
+    # Paths + Model setup
     # ------------------------------------------------------
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
@@ -54,13 +48,13 @@ def init_chatbot():
     )
 
     # ------------------------------------------------------
-    # Retrieval + Response
+    # Retrieval + Answer logic
     # ------------------------------------------------------
     def retrieve_and_answer(question: str):
         retrieved_docs = retriever.invoke(question)
         context = "\n\n".join([d.page_content for d in retrieved_docs])
-        filled_prompt = prompt.format(context=context, question=question)
-        response = llm.invoke(filled_prompt)
+        filled = prompt.format(context=context, question=question)
+        response = llm.invoke(filled)
         return response.content
 
     def answer_fn(message, history):
@@ -70,18 +64,17 @@ def init_chatbot():
             history = history + [{"role": "assistant", "content": answer}]
             return history
         except Exception as e:
-            history = history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
-            return history
+            return history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
 
     # ======================================================
     # 🎨 Styling (Desktop baseline)
     # ======================================================
     custom_css = """
-    .gradio-container *, 
-    .gradio-container, 
-    .block, 
-    .wrap, 
-    .gradio-app, 
+    .gradio-container *,
+    .gradio-container,
+    .block,
+    .wrap,
+    .gradio-app,
     .svelte-1ipelgc {
         padding-top: 0 !important;
         padding-bottom: 0 !important;
@@ -109,7 +102,7 @@ def init_chatbot():
     }
 
     .input-controls-row {
-        margin-top: -12px !important; 
+        margin-top: -12px !important;
         padding: 0 !important;
         align-items: flex-end !important;
         gap: 1rem !important;
@@ -143,12 +136,10 @@ def init_chatbot():
         gap: 8px !important;
         width: 180px !important;
     }
-    """
 
-    # ======================================================
-    # 📱 MOBILE PATCH (Send beside prompt)
-    # ======================================================
-    custom_css += """
+    /* ------------------------------
+       📱 MOBILE UX FIXES
+    ------------------------------ */
     @media (max-width: 768px) {
 
         .feedback-wrapper {
@@ -163,7 +154,6 @@ def init_chatbot():
         }
 
         .input-controls-row {
-            display: flex !important;
             flex-direction: row !important;
             align-items: flex-end !important;
         }
@@ -174,13 +164,11 @@ def init_chatbot():
             gap: 6px !important;
         }
 
-        .right-controls button:nth-child(2) {
-            order: 1 !important;
-        }
+        /* SEND top */
+        .right-controls button:nth-child(2) { order: 1 !important; }
 
-        .right-controls button:nth-child(1) {
-            order: 2 !important;
-        }
+        /* RETRY bottom */
+        .right-controls button:nth-child(1) { order: 2 !important; }
 
         .input-controls-row textarea,
         .input-controls-row .gradio-input,
@@ -191,45 +179,56 @@ def init_chatbot():
     """
 
     # ======================================================
-    # 💤 WAI WAKE-UP GUARD (ONLY NEW FEATURE IN v3.1)
-    # No HF API calls. No Cloudflare triggers. Poll only.
-    # ======================================================
-    def is_loaded():
-        """
-        Wake-Up Guard:
-        ---------------
-        • Called repeatedly by gr.Poll (every 1s).
-        • If Gradio UI is fully hydrated, immediately hide the
-          wake-up message.
-        • If still waking (logs showing), keep wake-up visible.
-        • This NEVER touches HuggingFace APIs.
-        • Safe for alpha and safe to remove later.
-        """
-        try:
-            # UI loaded → return update to HIDE wake-up message
-            return gr.update(visible=False)
-        except:
-            # UI still hydrating → keep message visible
-            return gr.update(visible=True)
-
-    # ======================================================
     # 🚀 Gradio UI
     # ======================================================
     theme = gr.themes.Default()
-    with gr.Blocks(theme=theme, css=custom_css) as demo:
 
+    with gr.Blocks(theme=theme, css=custom_css) as demo:
         # --------------------------------------------------
-        # 💤 Wake-up Placeholder (NEW: Easily removable)
+        # 💤 Wake-up message (ALWAYS FIRST)
         # --------------------------------------------------
         wakeup_msg = gr.Markdown(
-            "### 💤 WAI is waking up…\nThis can take 5–10 seconds if the server was resting.",
-            visible=True  # Visible until poll hides it
+            "### 💤 WAI is waking up…<br>This can take 5–10 seconds if the server was resting.",
+            elem_id="wai_wakeup"
         )
 
-        wakeup_poll = gr.Poll(is_loaded, every=1, trigger=True)
+        # --------------------------------------------------
+        # 🔁 HUGGINGFACE WAKE-UP PATCH (JS ONLY)
+        # --------------------------------------------------
+        # This replaces any gr.Poll. It waits for chatbot hydration.
+        gr.HTML("""
+        <script>
+        // ----------------------------------------------------------
+        // WorkFriend — HF Space Wake-Up Watcher
+        // ----------------------------------------------------------
+        // - Polls DOM every 500ms
+        // - Detects when chatbot + textarea + buttons exist
+        // - Hides wake-up message cleanly
+        // - No API calls, no Cloudflare triggers
+        // ----------------------------------------------------------
+
+        function wai_check_ready() {
+            const chat = document.querySelector('.chatbot-area');
+            const ta   = document.querySelector('textarea');
+            const btn  = document.querySelector('button');
+
+            // When hydrated → hide wakeup message
+            if (chat && ta && btn) {
+                const wake = document.querySelector('#wai_wakeup');
+                if (wake) wake.style.display = "none";
+                return;
+            }
+
+            setTimeout(wai_check_ready, 500);
+        }
+
+        // Start checking after initial render
+        setTimeout(wai_check_ready, 350);
+        </script>
+        """)
 
         # --------------------------------------------------
-        # Main Chat UI (unchanged)
+        # Chatbot UI
         # --------------------------------------------------
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
@@ -262,51 +261,29 @@ def init_chatbot():
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
         user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # --------------------------------------------------
-        # Enter / Shift+Enter behaviour (unchanged)
-        # --------------------------------------------------
-        gr.HTML("""
-            <script>
-            document.addEventListener("keydown", function (e) {
-                const ta = e.target;
-                if (!ta || ta.tagName !== "TEXTAREA") return;
-
-                if (e.shiftKey && e.key === "Enter") {
-                    e.stopPropagation();
-                    return;
-                }
-
-                if (!e.shiftKey && e.key === "Enter") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const sendBtn = Array.from(
-                        document.querySelectorAll("button")
-                    ).find(btn => btn.textContent.trim() === "Send");
-                    if (sendBtn) sendBtn.click();
-                    return false;
-                }
-            });
-            </script>
-        """)
-
-        # --------------------------------------------------
-        # NEW: Auto-scroll to chatbot when wake-up finishes
-        # --------------------------------------------------
+        # Enter key handler
         gr.HTML("""
         <script>
-        function wai_scroll_when_ready() {
-            const target = document.querySelector('.chatbot-area');
-            if (!target) return;
-            window.scrollTo({ top: target.offsetTop - 60, behavior: 'smooth' });
-        }
-        // Trigger once UI likely loaded
-        setTimeout(wai_scroll_when_ready, 1200);
+        document.addEventListener("keydown", function (e) {
+            const ta = e.target;
+            if (!ta || ta.tagName !== "TEXTAREA") return;
+
+            if (e.shiftKey && e.key === "Enter") {
+                e.stopPropagation();
+                return;
+            }
+
+            if (!e.shiftKey && e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                const sendBtn = Array.from(
+                    document.querySelectorAll("button")
+                ).find(btn => btn.textContent.trim() === "Send");
+                if (sendBtn) sendBtn.click();
+                return false;
+            }
+        });
         </script>
         """)
-
-        # --------------------------------------------------
-        # Link poll → wakeup_msg visibility
-        # --------------------------------------------------
-        wakeup_poll.output(wakeup_msg)
 
     return demo
