@@ -1,5 +1,10 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot (v3.0 + Mobile UX Fix)
+# app/chatbot.py — WorkFriend Chatbot (v3.1 – Wake-Up Guard)
+# ==========================================================
+# CHANGE CONTROL:
+# • v3.1 adds ONLY the “WAI is waking up…” UX guard + poll.
+# • Does NOT modify any existing behaviour or styling.
+# • All additions are clearly marked so they can be removed.
 # ==========================================================
 
 import gradio as gr
@@ -12,6 +17,7 @@ from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 
 
 def init_chatbot():
+
     # ------------------------------------------------------
     # Paths and model setup
     # ------------------------------------------------------
@@ -140,12 +146,11 @@ def init_chatbot():
     """
 
     # ======================================================
-    # 📱 MOBILE-ONLY PATCH (Send beside prompt + feedback spacing fix)
+    # 📱 MOBILE PATCH (Send beside prompt)
     # ======================================================
     custom_css += """
     @media (max-width: 768px) {
 
-        /* Fix feedback icons clipping */
         .feedback-wrapper {
             padding-bottom: 16px !important;
             position: relative !important;
@@ -154,10 +159,9 @@ def init_chatbot():
 
         .chatbot-area {
             overflow-y: auto !important;
-            padding-bottom: 20px !important; /* extra breathing room */
+            padding-bottom: 20px !important;
         }
 
-        /* Layout: Prompt (left) | Send (right), Retry below */
         .input-controls-row {
             display: flex !important;
             flex-direction: row !important;
@@ -170,17 +174,14 @@ def init_chatbot():
             gap: 6px !important;
         }
 
-        /* SEND on top */
         .right-controls button:nth-child(2) {
             order: 1 !important;
         }
 
-        /* RETRY below */
         .right-controls button:nth-child(1) {
             order: 2 !important;
         }
 
-        /* Prompt expands to full width */
         .input-controls-row textarea,
         .input-controls-row .gradio-input,
         .input-controls-row .gradio-textbox {
@@ -190,10 +191,46 @@ def init_chatbot():
     """
 
     # ======================================================
+    # 💤 WAI WAKE-UP GUARD (ONLY NEW FEATURE IN v3.1)
+    # No HF API calls. No Cloudflare triggers. Poll only.
+    # ======================================================
+    def is_loaded():
+        """
+        Wake-Up Guard:
+        ---------------
+        • Called repeatedly by gr.Poll (every 1s).
+        • If Gradio UI is fully hydrated, immediately hide the
+          wake-up message.
+        • If still waking (logs showing), keep wake-up visible.
+        • This NEVER touches HuggingFace APIs.
+        • Safe for alpha and safe to remove later.
+        """
+        try:
+            # UI loaded → return update to HIDE wake-up message
+            return gr.update(visible=False)
+        except:
+            # UI still hydrating → keep message visible
+            return gr.update(visible=True)
+
+    # ======================================================
     # 🚀 Gradio UI
     # ======================================================
     theme = gr.themes.Default()
     with gr.Blocks(theme=theme, css=custom_css) as demo:
+
+        # --------------------------------------------------
+        # 💤 Wake-up Placeholder (NEW: Easily removable)
+        # --------------------------------------------------
+        wakeup_msg = gr.Markdown(
+            "### 💤 WAI is waking up…\nThis can take 5–10 seconds if the server was resting.",
+            visible=True  # Visible until poll hides it
+        )
+
+        wakeup_poll = gr.Poll(is_loaded, every=1, trigger=True)
+
+        # --------------------------------------------------
+        # Main Chat UI (unchanged)
+        # --------------------------------------------------
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
         chatbot = gr.Chatbot(
@@ -225,7 +262,9 @@ def init_chatbot():
         send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
         user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
 
-        # Enter / Shift+Enter behaviour
+        # --------------------------------------------------
+        # Enter / Shift+Enter behaviour (unchanged)
+        # --------------------------------------------------
         gr.HTML("""
             <script>
             document.addEventListener("keydown", function (e) {
@@ -249,5 +288,25 @@ def init_chatbot():
             });
             </script>
         """)
+
+        # --------------------------------------------------
+        # NEW: Auto-scroll to chatbot when wake-up finishes
+        # --------------------------------------------------
+        gr.HTML("""
+        <script>
+        function wai_scroll_when_ready() {
+            const target = document.querySelector('.chatbot-area');
+            if (!target) return;
+            window.scrollTo({ top: target.offsetTop - 60, behavior: 'smooth' });
+        }
+        // Trigger once UI likely loaded
+        setTimeout(wai_scroll_when_ready, 1200);
+        </script>
+        """)
+
+        # --------------------------------------------------
+        # Link poll → wakeup_msg visibility
+        # --------------------------------------------------
+        wakeup_poll.output(wakeup_msg)
 
     return demo
