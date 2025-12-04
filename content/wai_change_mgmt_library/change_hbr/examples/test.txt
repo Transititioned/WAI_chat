@@ -1,0 +1,12 @@
+change_hbr/
+      source_full/
+         HBR_full_extract.md
+         HBR_resistance_drivers.md
+         ...
+      cards/
+         card_emotional_reactions.md
+         card_resistance_mechanics.md
+         ...
+      examples/
+         examples_emotional_reactions.md
+         examples_resistance.md
