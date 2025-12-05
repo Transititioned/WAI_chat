@@ -1,83 +1,63 @@
-# card_pm_decision_rules.md  
-*(Decision heuristics → When to use → Conversation patterns)*  
+# card_pm_decision_rules.md
+# Kerzner — PM Heuristics & Decision Rules Card
+*Inference card — distilled patterns, not examples*
 
 ---
 
-## 🔗 Source  
-Derived from **Kerzner themes & commandments (Rules 1–8)**  
-See **Kerzner Deep Patterns.md** → Sections:
-- Value-first thinking
-- Rolling-wave planning
-- Hybrid methodology assembly
-- Failure tolerance & culture
+## Core Operating Principle  
+Kerzner treats PM as **a decision engine, not a task executor**.  
+The PM's value = making the correct call early → preserving value → avoiding waste.
 
 ---
 
-## 🧠 When this card is relevant
-Use when the user asks about:
-- "Which approach should I use?"
-- "Do we need more planning or more experiments?"
-- "Waterfall vs Agile vs Hybrid?"
-- "How do I escalate or make a call?"
-- "We have uncertainty — what now?"
+## Heuristics — "Rules of Fluid PM Judgment"
 
-Trigger situations:
-> Team confused on next step  
-> Requirements unclear  
-> Stakeholders debating solution vs problem  
-> PM must pick hybrid over pure Agile/Waterfall  
+### Scope & WBS  
+- Break work only until **estimable + ownable**.  
+- Stop decomposition when effort to decompose > accuracy gained.  
+- Delay resource/time constraints until scope structure is stable.
 
----
+### Estimation & Planning  
+- Probe assumptions, don’t accept first estimates.  
+- If uncertainty high → **rolling wave, not full schedule**.  
+- Planning belongs to the people doing the work → creates ownership.  
 
-## 📏 Core Decision Rules (for WAI output)
+### Budget & Value  
+- Budget is not a single release — **staged allocation w/ gates**.  
+- Always check value remaining > cost to complete.  
+- If project no longer aligns to strategy → **pivot or kill early**.
 
-WAI applies these heuristics when deciding advice:
+### Communication  
+- Execs need **signal, not detail**.  
+- Filter, compress → insight → action.  
+- One deck cannot serve every audience.
 
-1. **If value unclear → pause & clarify purpose first**  
-2. **If high uncertainty → shorten planning horizon (rolling-wave)**  
-3. **If risk is material → increase control + documentation**  
-4. **If innovation work → increase adaptability + experiments**  
-5. **If requirements stable → predict + baseline scope**  
-6. **If high stakeholder friction → shift to facilitative leadership**  
-7. **If governance blocked → escalate via facts, not emotion**
-
-WAI should not decide *for* user; it should guide them through the rules.
+### Leadership & People  
+- Reward achievement → pride → intrinsic motivation.  
+- Lack of ownership = risk → intervention is mandatory, not optional.  
+- PM stays calm under pressure — *emotion is data, not direction*.
 
 ---
 
-## 🎬 Real Examples for WAI
+## Decision Rules (If X Then Y)
 
-**Example 1 — Choosing method**
-> Problem unclear → recommend discovery workshop + prototype.  
-> “You are not in delivery mode yet — you're in **understanding mode**.”
-
-**Example 2 — When schedule pressure hits**
-> Hard deadline + known scope → increase structure, RAID logs, EVM cadence.  
-> “This is a **control moment**, not an experiment moment.”
-
-**Example 3 — Feature creep**
-> Stakeholder tries adding work mid-way.  
-> “We can include this *through change control* — do you want impact analysis?”
+| Condition X | Kerzner response Y |
+|---|---|
+| Team unclear on success | Re-ground in purpose → value → benefits |
+| Scope uncertain | Freeze baseline or run change control immediately |
+| Estimates shaky | Ask assumptions, ranges, confidence % |
+| Risks high (RPN 8–10) | Contingency mandatory, escalation immediate |
+| Schedule slipping early | Re-scope before adding resources |
+| Data missing | Do not proceed — no blind optimism |
 
 ---
 
-## 💬 WAI response pattern
+## Kerzner Mindset Compression
+> "PM leadership = early detection + decisive correction  
+> using value, evidence, and adaptability as levers."
 
-WAI outputs concise decision logic:
+WAI must internalise:  
+- Spot ambiguity → hunt assumptions  
+- Push clarity → assign owners → timestamp actions  
+- Protect value → recommend alternatives, not just surface problems
 
-> "Given uncertainty is high and requirements are evolving,  
-> I recommend **rolling-wave planning** + a **lightweight backlog** instead of full Gantt.  
-> Want a workshop script or template for this scenario?"
-
----
-
-## 🧩 Cross-links
-
-Related cards:
-
-- `card_pm_checklists.md` — *startup flow + foundations*
-- `card_pm_risks_triggers.md` — *risk signals to escalate*
-- `card_pm_red_flags.md` — *when the project is drifting*
-- `card_pm_leadership_modes.md` — *how to adjust leadership style*
-
----
