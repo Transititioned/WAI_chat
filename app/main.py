@@ -43,16 +43,27 @@ def main():
     except Exception as e:
         print("❌ Error importing or testing LLM engine:", e)
 
-    print("🚀 Initialization complete (loader + config + vectorstore + LLM test).")
+    # --- Step 5: Router sanity load (stub only for now) ---
+    try:
+        from . import router
+        print("🛣  Router module imported (stub mode).")
+        # Optional one-line hello test — kept passive for alpha
+        if hasattr(router, "test_router"):
+            router.test_router()
+            print("🔍 Router test executed cleanly.")
+        else:
+            print("ℹ️ Router found, but no test_router() defined yet.")
+    except Exception as e:
+        print("⚠️ No router module loaded — continuing without routing:", e)
 
+    print("\n🚀 Initialization complete (loader + config + vectorstore + LLM test + router stub).")
 
-        # --- Step 5: Launch Chatbot UI ---
+    # --- Step 6: Launch Chatbot UI ---
     try:
         from . import chatbot
         print("✅ Chatbot module imported successfully.")
         demo = chatbot.init_chatbot()
-        print("🚀 Launching CaveBot interface...")
+        print("🚀 Launching CaveBot interface…")
         demo.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860)))
     except Exception as e:
         print("❌ Error launching chatbot:", e)
-
