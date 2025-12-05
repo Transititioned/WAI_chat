@@ -3,32 +3,40 @@
 # ==========================================================
 
 """
-This is a minimal placeholder router.
+Routing Brain – placeholder for corpus routing and behaviour layer.
 
-• No logic changes
-• No prompt manipulation
-• No model switching yet
-• Safe to include in Monday release
+Current behaviour (v0.1 - Safe for Release):
+------------------------------------------------
+• No logic changes to chatbot behaviour
+• No influence over prompts or retrieval
+• No model-switching
+• No risk of hallucination via over-system prompting
 
-Later this module will:
-- choose corpus (PM / Change / Data / Articles)
-- do behaviour shaping
-- apply system prompt personality
-- log decisions for improvement
+Future upgrades (v0.2+):
+------------------------------------------------
+- Route questions based on domain signals
+- Preprocess queries (normalise, detect intent)
+- Apply system persona / thinking style
+- Add tool choosing + document routing
+- Log decisions for AI training + tuning
 """
 
-def route(question: str):
+def route(question: str) -> str:
     """
-    For now just returns the raw question.
-    Later this will add preprocessing, routing, tagging etc.
+    Temporary passthrough routing.
+    Returns question untouched to maintain Alpha stability.
+
+    v0.2 will add heuristic detection and context tagging.
     """
     return question
 
 
-# Optional confidence check for dev-time sanity
-def test_router():
+def test_router() -> bool:
+    """
+    Dev sanity check.
+    Does NOT affect runtime.
+    """
     try:
-        out = route("test")
-        return out == "test"
-    except:
+        return route("test") == "test"
+    except Exception:
         return False
