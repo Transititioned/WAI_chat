@@ -51,7 +51,7 @@ def init_chatbot():
     # Retrieval + Router aware answer
     # ------------------------------------------------------
     def retrieve_and_answer(q: str):
-        lens = route(q)   # 🔥 routing stays intact
+        lens = route(q)
 
         docs = retriever.invoke(q)
         context = "\n\n".join([d.page_content for d in docs])
@@ -71,7 +71,7 @@ def init_chatbot():
             history = history + [{"role": "user", "content": msg}]
             reply = retrieve_and_answer(msg)
             history = history + [{"role": "assistant", "content": reply}]
-            return history, ""        # ← clears input/spinner triggers
+            return history, ""        # clear input + auto spinner
         except Exception as e:
             return history + [{"role": "assistant", "content": f"⚠️ {e}"}], ""
 
@@ -87,7 +87,6 @@ def init_chatbot():
         overflow: hidden;
     }
 
-    /* 🚫 Fix double-scroll bug: scroll applies only INSIDE messages */
     .chatbot-area > .gr-chatbot {
         height:100% !important;
         overflow-y:auto !important;
@@ -103,12 +102,9 @@ def init_chatbot():
     }
 
     .right-controls { width:180px; display:flex; flex-direction:column; gap:8px; }
-
-    .wf-btn {
-        background:#00C4A7 !important; color:white !important;
-        border-radius:8px !important; font-weight:600 !important;
-        height:38px; display:flex; align-items:center; justify-content:center;
-    }
+    .wf-btn { background:#00C4A7 !important; color:white !important;
+             border-radius:8px !important; font-weight:600 !important;
+             height:38px; display:flex; align-items:center; justify-content:center; }
     .wf-btn:hover { background:#00A38A !important; }
 
     """
@@ -117,9 +113,7 @@ def init_chatbot():
 
     with gr.Blocks(theme=theme, css=custom_css) as demo:
 
-        # --------------------------------------------------
-        # Wake Message **DISABLED BUT SAVED**
-        # --------------------------------------------------
+        # Wake message kept for fallback but disabled
         """
         gr.Markdown("### 💤 WAI is waking up… 5–10 sec first use",
                     elem_id="wai_wakeup")
@@ -140,17 +134,22 @@ def init_chatbot():
                                     scale=4)
 
             with gr.Column(elem_classes="right-controls", scale=0):
-                copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"])
+
                 actions = add_user_actions(chatbot, retrieve_and_answer)
+
+                # ---------------------------------------
+                # Only change made — copy button replaced
+                # ---------------------------------------
+                copy_btn = actions.get("copy")  # <─ working clipboard version
+
                 if "retry" in actions:
                     actions["retry"].elem_classes = ["wf-btn"]
+
                 send_btn = gr.Button("Send", elem_classes=["wf-btn"])
 
-        # 🟢 spinner remains auto via chatbot_actions wrapper
         send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
         user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
 
-        # Enter to send
         gr.HTML("""
         <script>
         document.addEventListener("keydown", function(e){
