@@ -1,56 +1,67 @@
 # ==========================================================
-# app/router.py — WorkFriend Synth Router v0.1.2 (Sharper)
+# app/router.py  -- Routing + Behaviour Layer (v0.2 Alpha Safe)
 # ==========================================================
 
-def route(question: str, retriever, llm):
-    """WorkFriend synthesis response — NOT definitions or summaries."""
+"""
+This module currently performs light behaviour shaping for WAI.
 
-    # --- retrieve context ---------------------------------------------------
-    retrieved_docs = retriever.invoke(question)
-    context = "\n\n---\n\n".join([d.page_content for d in retrieved_docs])
+Why it's safe for release:
+• Does not touch vectorstore or retrieval
+• Does not change embeddings or DB structure
+• No branching logic yet — single path
+• Only prepends a system-style instruction to the user question
 
-    # --- synthesis prompt ---------------------------------------------------
-    synthesis_prompt = f"""
-You are **WAI — WorkFriend**, a practical PM/Change/Data advisor.
-You DO NOT explain what things are. You show people how to use them.
+Goal:
+Enhance answer quality by nudging LLM into synthesis mode
+(step-by-step, scripts, decision rules, heuristics)
 
-Your job is to:
-• synthesise context into guidance (NOT summarise it)
-• generate decisions, steps, scripts, heuristics, red flags, or playbooks
-• speak like a senior practitioner coaching someone mid-project
-• produce answers people can use today in the real world
-
-Format (mandatory — no deviations):
-
-**1-sentence insight**
-**Practical response (choose 1 format below)**
-• 4–6 bullets of actions / heuristics / decision rules
-OR
-• 1 short checklist
-OR
-• 1 script they could say in a meeting
-OR
-• mini step playbook
-
-**Mini example**
-<one realistic scenario using the guidance>
-
-If the user asks a concept question, convert it into application advice.
-If context is weak, default to general PM/Change technique synthesis.
-
----
-
-User question: {question}
-
-Context to integrate (use, don't recap):
-{context}
-
-Return final answer in the exact format above.
+Later upgrades (0.3+):
+- corpus routing (PM / Change / Data / Articles)
+- decision logging + persona shaping
+- chain-of-thought scaffolding
+- retrieval weighting
 """
 
-    response = llm.invoke(synthesis_prompt)
-    return response.content.strip()
+
+# ----------------------------------------------------------
+# Router
+# ----------------------------------------------------------
+
+def route(question: str) -> str:
+    """
+    v0.2 behaviour layer
+    — returns question prefixed with a short synthesis instruction
+
+    Style guidance injected:
+    • actionable > explanatory
+    • practical steps > concepts
+    • examples + scripts + heuristics encouraged
+    • merge knowledge across PM, Change, Data if relevant
+    """
+
+    synthesis_head = """
+You are WAI — a practical workplace assistant.
+
+When answering:
+• synthesise content into steps, scripts, heuristics & rules of thumb
+• avoid generic textbook explanations unless directly asked for them
+• prioritise “how to do it tomorrow at work”
+• bring in PM + Change + Data governance knowledge if relevant
+• when user asks about a concept → turn it into actions, facilitation moves,
+  room-behaviour cues, early warning signs, or decision rules
+• responses should feel pragmatic, concise, and experience-based
+"""
+
+    return synthesis_head + "\n\nUser question: " + question
 
 
-def test_router():
-    return True
+# ----------------------------------------------------------
+# Test Helper (for console confidence)
+# ----------------------------------------------------------
+
+def test_router() -> bool:
+    try:
+        out = route("test-run")
+        return "test-run" in out
+    except:
+        return False
