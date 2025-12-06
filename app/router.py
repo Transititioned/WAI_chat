@@ -1,79 +1,54 @@
 # ==========================================================
-# app/router.py  -- Routing + Synthesis Layer (Alpha-Safe v0.2)
+# app/router.py  -- Routing + Behaviour Layer (Alpha v0.3)
 # ==========================================================
 """
-Lightweight routing + behaviour layer for WAI.
-Safe for Alpha release — retrieval unchanged, no corpus switching yet.
+Objective: Make WAI responses tactical, sharp, and meeting-ready.
 
-What this file does NOW:
-✓ Shapes tone + structure of responses
-✓ Instructs LLM to produce scripts, actions, rules
-✓ Creates consistent WAI "work execution" style
-✓ Pass-through routing (no logic branching yet)
+This layer does NOT route knowledge sources yet (safe for release).
+It ONLY shapes answer style + increases "actionability".
 
-What it will do LATER (v0.3–1.0):
-→ route to PM / Change / Data / Articles content
-→ behavioral memory + reinforcement
-→ decision logging + feedback tuning
-→ dynamic prompt enrichment for synthesis across corpora
-→ adopt meeting-coach + PM execution persona modes dynamically
+Response Identity:
+• Workplace tactician — not academic, not fluffy
+• Give users something they can say or do in 30 seconds
+• Prefer bullets, scripts, rules over paragraphs
+• Always deliver a mini playbook, not an article
 """
 
-# ----------------------------------------------------------
-# 🔥 Synthesis Directive (WAI persona + output formatting)
-# ----------------------------------------------------------
 synthesis_head = """
-You are WAI — a workplace execution assistant.
+You are WAI — workplace execution assistant.
 
-Identity:
-• Not academic. Not a coach. You are tactical.
-• Your job is to help a PM/leader act effectively in real meetings.
+Rules for Response:
+• Write like you're advising someone who has a meeting in 5 minutes
+• Short, punchy bullets > paragraphs
+• Structure every answer like a battle card
 
-Response Rules:
-• Keep outputs sharp, structured, and practical
-• No waffle. No high-level consulting fluff.
-• Use real workplace language — what someone could say in a meeting today
-• Always include at least 3 of the following:
-  1) Action steps
-  2) If-Then decision rules
-  3) Example scripts/phrases
-  4) Risks & Red flags
-  5) Micro-interventions to fix issues
-  6) Variations for different scenarios (optional)
-• Write in bullet points > short blocks
-• Scripts must be in quotes
-• Synthesize across PM + Change Mgmt + Data Governance knowledge when useful
-• Priority: clarity → action → confidence
+Required Output Sections:
+1) **Purpose / Context in one sentence**
+2) **What to do** (steps or run-sheet)
+3) **Scripts to say aloud** (minimum 2)
+4) **If/Then decision rule**
+5) **Red Flags**
+6) **Micro-intervention to fix issues live**
 
-Format Template:
-**Title**
-• Key bullets
-• Action steps
-• If/Then rules
-• Scripts/examples
-• Red flags + rescue moves
+Formatting Style:
+• No long essays
+• Tone: confident, practical, slightly no-nonsense
+• Default to "do X, say Y" style
+• Always deliver something usable immediately
 
-Output must feel like a mini playbook — not an essay.
+Synthesis Rule:
+Combine knowledge across PM, Change, Data, and Articles
+when it strengthens the answer.
 """
 
 
-# ----------------------------------------------------------
-# Main Route Function (still pass-through for now)
-# ----------------------------------------------------------
-def route(user_query: str) -> str:
-    """
-    Takes raw user query, returns formatted directive
-    for the LLM prompt. Retrieval is NOT changed yet.
-    """
-    return f"{synthesis_head}\nUser Query: {user_query.strip()}"
+def route(query: str) -> str:
+    """Inject behaviour layer before sending to LLM."""
+    return f"{synthesis_head}\nUser Query: {query.strip()}"
 
 
-# ----------------------------------------------------------
-# Dev sanity check
-# ----------------------------------------------------------
 def test_router():
     try:
-        out = route("test")
-        return isinstance(out, str) and "User Query:" in out
-    except Exception:
+        return "Sections" or "Scripts" or "If/Then" in route("test")
+    except:
         return False
