@@ -1,6 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend Chatbot
-# Routing + Reasoning + Restored Mint UX
+# app/chatbot.py — WorkFriend WAI (v4.x Router + Mint UX + Enter-to-send fix)
 # ==========================================================
 
 import gradio as gr
@@ -9,7 +8,6 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
-
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 from app.router import route, postprocess_answer
 
@@ -35,7 +33,7 @@ def init_chatbot():
     )
 
     # ------------------------------------------------------
-    # Vector store build (articles corpus)
+    # Vector store build (current ARTICLES only for alpha)
     # ------------------------------------------------------
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
@@ -44,7 +42,9 @@ def init_chatbot():
             continue
         chunks = [text[i:i + 1500] for i in range(0, len(text), 1500)]
         for chunk in chunks:
-            docs.append({"content": chunk, "metadata": {"source": md_file.name}})
+            docs.append(
+                {"content": chunk, "metadata": {"source": md_file.name}}
+            )
 
     vectordb = Chroma.from_texts(
         texts=[d["content"] for d in docs],
@@ -53,51 +53,63 @@ def init_chatbot():
     )
     retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
-    # ------------------------------------------------------
-    # Router-aware structured prompt
-    # ------------------------------------------------------
-    prompt = ChatPromptTemplate.from_template(
-        "{system}\n\n"
-        "Context:\n{context}\n\n"
-        "Respond using:\n"
-        "Answer: clear, useful guidance\n"
-        "Why this matters: reasoning behind the advice\n"
-        "Plays / Examples: scripts or micro-moves when helpful\n\n"
-        "User question: {question}"
-    )
-
-    # ------------------------------------------------------
-    # Retrieval + Answer logic
-    # ------------------------------------------------------
+    # ======================================================
+    # ⛑️ Router-aware Retrieval + Answer logic
+    # ======================================================
     def retrieve_and_answer(question: str) -> str:
+        """
+        1. Ask router for system framing (lens / persona).
+        2. Retrieve context from vectorstore.
+        3. Call LLM with structured prompt.
+        4. Let router post-process for alpha disclaimer etc.
+        """
         system_prompt = route(question)
 
         retrieved_docs = retriever.invoke(question)
-        context = "\n\n".join([d.page_content for d in retrieved_docs]) or "No relevant context found."
+        context = "\n\n".join([d.page_content for d in retrieved_docs])
 
-        filled = prompt.format(
+        prompt_tmpl = ChatPromptTemplate.from_template(
+            "{system}\n\n"
+            "Context:\n{context}\n\n"
+            "Respond using this structure:\n"
+            "1. **Answer** – clear, useful guidance\n"
+            "2. **Why this matters** – reasoning / principles\n"
+            "3. **Plays / Examples** – scripts or micro-moves when helpful\n\n"
+            "User Question: {question}"
+        )
+
+        filled = prompt_tmpl.format(
             system=system_prompt,
             context=context,
-            question=question
+            question=question,
         )
-        response = llm.invoke(filled)
 
-        # IMPORTANT: your current router.postprocess_answer
-        # takes ONE argument (the model answer), so we only
-        # pass response.content here.
-        return postprocess_answer(response.content)
+        response = llm.invoke(filled)
+        # postprocess adds the alpha-warning suffix, etc.
+        return postprocess_answer(question, response.content)
 
     def answer_fn(message, history):
+        """
+        Chat handler:
+        - append user msg
+        - get WAI answer
+        - append assistant msg
+        - CLEAR the input box (second return value = "")
+        """
         try:
             history = history + [{"role": "user", "content": message}]
             answer = retrieve_and_answer(message)
             history = history + [{"role": "assistant", "content": answer}]
-            return history
+            return history, ""
         except Exception as e:
-            return history + [{"role": "assistant", "content": f"⚠️ Error: {e}"}]
+            history = history + [{
+                "role": "assistant",
+                "content": f"⚠️ Error: {e}"
+            }]
+            return history, ""
 
     # ======================================================
-    # 🎨 Styling (Desktop + Mobile, mint buttons restored)
+    # 🎨 Styling (Desktop + Mobile, Mint brand buttons)
     # ======================================================
     custom_css = """
     .gradio-container *,
@@ -138,7 +150,13 @@ def init_chatbot():
         gap: 1rem !important;
     }
 
-    .wf-btn, .wf-btn button {
+    /* -----------------------------------------
+       🍃 WorkFriend Mint Buttons (Brand Override)
+    ------------------------------------------ */
+    .wf-btn,
+    .wf-btn *,
+    button.wf-btn,
+    button.wf-btn:hover {
         background-color: #00C4A7 !important;
         color: #ffffff !important;
         border: none !important;
@@ -155,9 +173,9 @@ def init_chatbot():
         box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
         transition: all 0.2s ease-in-out !important;
     }
-    .wf-btn:hover, .wf-btn button:hover {
+    .wf-btn:hover {
         background-color: #00A38A !important;
-        transform: translateY(-1px);
+        transform: translateY(-1px) !important;
     }
 
     .right-controls {
@@ -217,21 +235,18 @@ def init_chatbot():
         # --------------------------------------------------
         # 💤 Wake-up message (ALWAYS FIRST)
         # --------------------------------------------------
-        wakeup_msg = gr.Markdown(
+        gr.Markdown(
             "### 💤 WAI is waking up…<br>This can take 5–10 seconds if the server was resting.",
             elem_id="wai_wakeup"
         )
 
-        # --------------------------------------------------
-        # 🔁 HF wake-up watcher (unchanged)
-        # --------------------------------------------------
+        # HF Space wake-up watcher
         gr.HTML("""
         <script>
         function wai_check_ready() {
             const chat = document.querySelector('.chatbot-area');
             const ta   = document.querySelector('textarea');
             const btn  = document.querySelector('button');
-
             if (chat && ta && btn) {
                 const wake = document.querySelector('#wai_wakeup');
                 if (wake) wake.style.display = "none";
@@ -252,7 +267,7 @@ def init_chatbot():
             label="WorkFriend Conversation",
             type="messages",
             height=420,
-            elem_classes=["chatbot-area"]
+            elem_classes=["chatbot-area"],
         )
 
         add_feedback_below_chatbot()
@@ -282,21 +297,32 @@ def init_chatbot():
                     variant="primary"
                 )
 
-        send_btn.click(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
-        user_input.submit(fn=answer_fn, inputs=[user_input, chatbot], outputs=chatbot)
+        # NOTE: outputs include BOTH chatbot + textbox so the input clears
+        send_btn.click(
+            fn=answer_fn,
+            inputs=[user_input, chatbot],
+            outputs=[chatbot, user_input],
+        )
+        user_input.submit(
+            fn=answer_fn,
+            inputs=[user_input, chatbot],
+            outputs=[chatbot, user_input],
+        )
 
-        # Enter key handler
+        # Enter key handler (Enter = send, Shift+Enter = newline)
         gr.HTML("""
         <script>
         document.addEventListener("keydown", function (e) {
             const ta = e.target;
             if (!ta || ta.tagName !== "TEXTAREA") return;
 
+            // Shift+Enter -> newline
             if (e.shiftKey && e.key === "Enter") {
                 e.stopPropagation();
                 return;
             }
 
+            // Enter -> click Send
             if (!e.shiftKey && e.key === "Enter") {
                 e.preventDefault();
                 e.stopPropagation();
