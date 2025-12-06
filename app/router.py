@@ -92,4 +92,4 @@ if __name__ == "__main__":
     print(route(
         "Explain why alignment at kickoff matters",
         "Alignment prevents drift + confusion later."
-    ))
+    )) 
