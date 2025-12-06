@@ -2,11 +2,8 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular UX actions for WorkFriend WAI
-# Includes:
-#  - Feedback thumbs
-#  - Retry last message
-#  - Copy last response 📋
-#  - Spinner hook for send UX
+# Includes feedback, retry, copy last message & spinner hook
+# Compatible with new Gradio (uses js= not _js=)
 # ==========================================================
 
 import gradio as gr
@@ -15,7 +12,6 @@ import gradio as gr
 # 👍👎 FEEDBACK BLOCK
 # ==========================================================
 def add_feedback_below_chatbot():
-    """Adds balanced thumbs-up/down SVG buttons below chat window."""
     css = """
     <style>
     .feedback-wrapper { text-align:center; margin-top:10px; }
@@ -48,6 +44,7 @@ def add_feedback_below_chatbot():
                 c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0
                 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
             </button>
+
             <button class="thumb-btn thumb-down" id="thumbDown"
                 onclick="this.classList.toggle('active');
                          document.getElementById('thumbUp').classList.remove('active');">
@@ -66,12 +63,10 @@ def add_feedback_below_chatbot():
 # 🔄 Retry Last Message
 # ==========================================================
 def add_retry_action(chatbot, retrieve_fn):
-    """Re-runs the last user question."""
     def retry_last(history):
         if not history:
             return history
 
-        # get most recent USER message
         last_user = None
         for msg in reversed(history):
             if isinstance(msg, dict) and msg.get("role") == "user":
@@ -94,51 +89,46 @@ def add_retry_action(chatbot, retrieve_fn):
 
 
 # ==========================================================
-# 📋 Copy Last Response — (New)
+# 📋 Copy Last Response (fixed - uses js=)
 # ==========================================================
 def add_copy_last_action(chatbot):
-    """Copies most recent assistant reply to clipboard using JS."""
     btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
 
-    copy_js = """
-    function copyLast() {
-        const msgs = [...document.querySelectorAll(".message, .chat-message")];
-        if (!msgs.length) return;
-
-        // search from bottom -> first assistant block
-        for (let i = msgs.length - 1; i >= 0; i--) {
-            const text = msgs[i].innerText || msgs[i].textContent;
-            if (text && !text.startsWith("User") && text.trim().length > 2) {
-                navigator.clipboard.writeText(text.trim());
-                alert("Copied last response 📋");
-                break;
+    btn.click(
+        None, None, None,
+        js="""
+        () => {
+            const blocks = document.querySelectorAll('.message, .chat-message');
+            for (let i = blocks.length-1; i >= 0; i--) {
+                const text = blocks[i].innerText.trim();
+                if (text.length > 2) {
+                    navigator.clipboard.writeText(text);
+                    alert("Copied last response 📋");
+                    break;
+                }
             }
         }
-    }
-    copyLast();
-    """
-
-    btn.click(None, None, None, _js=copy_js)
+        """
+    )
     return btn
 
 
 # ==========================================================
-# ⏳ Spinner (optional hook - already works in chatbot)
+# ⏳ Spinner behavior (also switched `_js → js`)
 # ==========================================================
 def add_spinner_behavior(send_btn):
-    """Reveals spinner while LLM is generating (if present)."""
     send_btn.click(
         None, None, None,
-        _js="""() => {
-            const sp = document.querySelector('.gradio-spinner');
-            if (sp) sp.style.display='block';
+        js="""() => {
+            const s = document.querySelector('.gradio-spinner');
+            if (s) s.style.display='block';
         }"""
     )
     return send_btn
 
 
 # ==========================================================
-# PUBLIC EXPORT — used in chatbot.py
+# Public action export
 # ==========================================================
 def add_user_actions(chatbot, retrieve_fn):
     return {
