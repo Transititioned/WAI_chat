@@ -2,8 +2,8 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular UX actions for WorkFriend WAI
-# Includes feedback, retry, copy last message & spinner hook
-# Compatible with new Gradio (uses js= not _js=)
+# Feedback + Retry + Copy Toast + Spinner Hook
+# Fully HF-safe (uses js= instead of _js=)
 # ==========================================================
 
 import gradio as gr
@@ -89,7 +89,7 @@ def add_retry_action(chatbot, retrieve_fn):
 
 
 # ==========================================================
-# 📋 Copy Last Response (fixed - uses js=)
+# 📋 Copy Last Response — now Toast UI (no alert popup)
 # ==========================================================
 def add_copy_last_action(chatbot):
     btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
@@ -99,14 +99,24 @@ def add_copy_last_action(chatbot):
         js="""
         () => {
             const blocks = document.querySelectorAll('.message, .chat-message');
-            for (let i = blocks.length-1; i >= 0; i--) {
-                const text = blocks[i].innerText.trim();
-                if (text.length > 2) {
-                    navigator.clipboard.writeText(text);
-                    alert("Copied last response 📋");
-                    break;
-                }
-            }
+            if(blocks.length < 1) return;
+
+            const text = blocks[blocks.length-1].innerText.trim();
+            if(text.length) navigator.clipboard.writeText(text);
+
+            // ---- 🎉 Toast instead of alert ----
+            let toast = document.createElement("div");
+            toast.innerText = "Copied ✓";
+            toast.style.cssText = `
+                position:fixed; bottom:32px; right:32px;
+                background:#00C4A7; color:white; padding:10px 16px;
+                border-radius:6px; font-size:14px; font-weight:600;
+                box-shadow:0 3px 12px rgba(0,0,0,.24);
+                z-index:9999; opacity:0; transition:opacity .25s;
+            `;
+            document.body.appendChild(toast);
+            setTimeout(()=> toast.style.opacity = 1, 40);
+            setTimeout(()=> { toast.style.opacity = 0; setTimeout(()=>toast.remove(),260)}, 1800);
         }
         """
     )
@@ -114,21 +124,21 @@ def add_copy_last_action(chatbot):
 
 
 # ==========================================================
-# ⏳ Spinner behavior (also switched `_js → js`)
+# ⏳ Spinner behavior (js-safe)
 # ==========================================================
 def add_spinner_behavior(send_btn):
     send_btn.click(
         None, None, None,
         js="""() => {
             const s = document.querySelector('.gradio-spinner');
-            if (s) s.style.display='block';
+            if(s) s.style.display='block';
         }"""
     )
     return send_btn
 
 
 # ==========================================================
-# Public action export
+# Public export to chatbot.py
 # ==========================================================
 def add_user_actions(chatbot, retrieve_fn):
     return {
