@@ -1,78 +1,56 @@
 # ==========================================================
-# app/router.py — WorkFriend Routing & Synthesis Layer v0.1.1
+# app/router.py — WorkFriend Synth Router v0.1.2 (Sharper)
 # ==========================================================
-"""
-This module handles reasoning + synthesis BEFORE generation.
-Designed to be safe for Alpha launch.
-
-Capabilities:
-✔ Preprocess question (light touch)
-✔ Run synthesis prompt on retrieved context
-✔ Enforce WorkFriend tone and practical answers
-✔ Drop-in replacement for direct LLM calls
-
-Future Upgrades (not enabled yet):
-• Domain routing (PM/Change/Data/Articles)
-• Decision logging + model switching
-• Weighted retrieval expansion
-• Multi-pass chain for synthesis depth
-"""
-
-# ----------------------------------------------------------
-# Main function called by chatbot.py
-# ----------------------------------------------------------
 
 def route(question: str, retriever, llm):
-    """Return final WAI-synthesised answer."""
-    
-    # retrieve top context chunks
+    """WorkFriend synthesis response — NOT definitions or summaries."""
+
+    # --- retrieve context ---------------------------------------------------
     retrieved_docs = retriever.invoke(question)
     context = "\n\n---\n\n".join([d.page_content for d in retrieved_docs])
 
-    # =============================
-    # 🔥 WorkFriend Synthesis Layer
-    # =============================
+    # --- synthesis prompt ---------------------------------------------------
     synthesis_prompt = f"""
-You are **WAI — WorkFriend**, a practical AI designed for synthesis, not summaries.
+You are **WAI — WorkFriend**, a practical PM/Change/Data advisor.
+You DO NOT explain what things are. You show people how to use them.
 
-Persona:
-• Calm, experienced, senior IT/PM advisor voice
-• Values clarity, actions, decision rules, signals, risk thinking
-• No waffle. No textbook definitions. No corporate mush.
-• One answer = something a PM would use today on a real project.
+Your job is to:
+• synthesise context into guidance (NOT summarise it)
+• generate decisions, steps, scripts, heuristics, red flags, or playbooks
+• speak like a senior practitioner coaching someone mid-project
+• produce answers people can use today in the real world
 
-You MUST:
-1. Integrate context into insights (not recap it)
-2. Turn ideas into steps, heuristics, scripts, or checklists
-3. Prefer real-world phrasing over academic language 
-4. Add one short example or micro-script if relevant
-5. If context is weak → reason using general PM/Change/Data logic safely
+Format (mandatory — no deviations):
 
-Answer Format:
-**Insight (1–2 sentences max)**
-• Practical guidance (3–5 bullets)
-• Mini example or script where suitable
+**1-sentence insight**
+**Practical response (choose 1 format below)**
+• 4–6 bullets of actions / heuristics / decision rules
+OR
+• 1 short checklist
+OR
+• 1 script they could say in a meeting
+OR
+• mini step playbook
+
+**Mini example**
+<one realistic scenario using the guidance>
+
+If the user asks a concept question, convert it into application advice.
+If context is weak, default to general PM/Change technique synthesis.
+
+---
 
 User question: {question}
 
-Context retrieved (imperfect, partial — integrate intelligently):
+Context to integrate (use, don't recap):
 {context}
 
-Respond as WAI now. Keep final answer clean, helpful, and applied.
+Return final answer in the exact format above.
 """
 
     response = llm.invoke(synthesis_prompt)
     return response.content.strip()
 
 
-
-# ----------------------------------------------------------
-# Simple health check for startup diagnostics
-# ----------------------------------------------------------
-
 def test_router():
-    try:
-        out = route("test", retriever=None, llm=None)  # this will fail intentionally
-    except:
-        return True  # means function loaded & callable
-    return False 
+    return True
