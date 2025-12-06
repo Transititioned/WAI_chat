@@ -1,37 +1,63 @@
-# ================================================================
-# app/router.py — WAI Routing v1.0 (Alpha)
-# Soft-routing ready, no circular imports
-# ================================================================
+# ==========================================================
+# app/router.py — Soft Routing (B2)
+# Routes only by *lens emphasis*, not folder scanning.
+# All answers return with reasoning AND alpha disclaimer.
+# ==========================================================
 
-import re
-
-# ------------------------------------------------
-# 1) ROUTING — for now empty (safe default)
-# ------------------------------------------------
 def route(question: str) -> str:
     """
-    Returns an optional system instruction string based on keywords.
-    For now returns "" so chatbot works. No imports. No circular risk.
+    Lightweight router: adjusts lens emphasis only.
+    Does NOT control retrieval sources yet — B2 step.
     """
+
     q = question.lower()
 
-    # simple keyword buckets (B2 soft routing foundation)
-    if any(x in q for x in ["ai vendor", "risk", "governance", "data"]):
-        return "Use a Data + AI Governance lens."
-    if any(x in q for x in ["kickoff", "stakeholder", "change", "alignment"]):
-        return "Use a Project Delivery + Stakeholder lens."
+    # --- Keyword lens detection ---
+    if any(k in q for k in ["ai vendor", "governance", "risk", "security", "privacy", "data retention"]):
+        return (
+            "Respond using a Data & AI Governance lens.\n"
+            "Focus on controls, transparency, contracts, risk & assurance.\n"
+            "Keep tone practical and step-based. Senior stakeholder mindset."
+        )
 
-    return ""  # neutral default
+    if any(k in q for k in ["kickoff", "scope", "timeline", "estimation", "deliverable", "pm", "project"]):
+        return (
+            "Respond using a Project Delivery lens.\n"
+            "Focus on clarity, alignment, sequencing and decision flow.\n"
+            "Bias toward outcomes, ownership and success criteria."
+        )
+
+    if any(k in q for k in ["stakeholder", "change", "adoption", "resistance", "training"]):
+        return (
+            "Respond using a Change & People lens.\n"
+            "Balance empathy with momentum. Ask alignment questions.\n"
+            "Use plays, scripts, questions, engagement techniques."
+        )
+
+    # default fallback
+    return (
+        "General response mode. Provide structured answer with reasoning.\n"
+        "When uncertain, suggest options + questions to clarify intent."
+    )
 
 
-# ------------------------------------------------
-# 2) Postprocess wrapper — keeps your alpha message
-# ------------------------------------------------
 def postprocess_answer(model_answer: str) -> str:
     """
-    Takes final answer text and appends alpha disclaimer exactly as requested.
+    Formatting wrapper for all chatbot responses.
+    Alpha-stage safety note included (exact wording requested).
     """
+
+    if not model_answer:
+        return "⚠️ No model answer returned."
+
     return (
         model_answer.strip()
-        + "\n\n---\n\nThis is an alpha release. Please check any suggestions given."
+        + "\n\n---\n"
+        "⚠️ *WAI is in early alpha.*\n"
+        "Please check any suggestions against your own judgement."
     )
+
+
+# Optional local test
+if __name__ == "__main__":
+    print(postprocess_answer("Test output OK."))
