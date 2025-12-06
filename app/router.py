@@ -1,67 +1,55 @@
 # ==========================================================
-# app/router.py  -- Routing + Behaviour Layer (v0.2 Alpha Safe)
+# app/router.py  -- Routing + Synthesis Behaviour Stub (v0.21)
 # ==========================================================
 
 """
-This module currently performs light behaviour shaping for WAI.
+SAFE FOR ALPHA RELEASE
 
-Why it's safe for release:
-• Does not touch vectorstore or retrieval
-• Does not change embeddings or DB structure
-• No branching logic yet — single path
-• Only prepends a system-style instruction to the user question
+Routing is still simple — no corpus switching yet.
+This version improves answer behaviour without risk:
 
-Goal:
-Enhance answer quality by nudging LLM into synthesis mode
-(step-by-step, scripts, decision rules, heuristics)
-
-Later upgrades (0.3+):
-- corpus routing (PM / Change / Data / Articles)
-- decision logging + persona shaping
-- chain-of-thought scaffolding
-- retrieval weighting
+✔ Keeps current architecture working
+✔ No embedding/index code touched
+✔ Wraps user question in behaviour framing
+✔ Forces actionable format > descriptive narrative
+✔ Light synthesis instruction for GPT-4o-mini
 """
 
-
-# ----------------------------------------------------------
-# Router
-# ----------------------------------------------------------
-
-def route(question: str) -> str:
-    """
-    v0.2 behaviour layer
-    — returns question prefixed with a short synthesis instruction
-
-    Style guidance injected:
-    • actionable > explanatory
-    • practical steps > concepts
-    • examples + scripts + heuristics encouraged
-    • merge knowledge across PM, Change, Data if relevant
-    """
-
-    synthesis_head = """
+# --- Core behaviour style injected into every response ---
+synthesis_head = """
 You are WAI — a practical workplace assistant.
 
 When answering:
-• synthesise content into steps, scripts, heuristics & rules of thumb
-• avoid generic textbook explanations unless directly asked for them
-• prioritise “how to do it tomorrow at work”
-• bring in PM + Change + Data governance knowledge if relevant
-• when user asks about a concept → turn it into actions, facilitation moves,
-  room-behaviour cues, early warning signs, or decision rules
-• responses should feel pragmatic, concise, and experience-based
+• respond like a senior PM/BA/change practitioner helping on the job
+• default to ACTIONABLE output, not theoretical explanation
+• get to the point fast — avoid long narrative openings
+• always give output using structured formats such as:
+  - scripts to say in meetings
+  - step-by-step actions
+  - decision rules (If X → Then Y)
+  - facilitation moves & stakeholder tactics
+  - red flags & early warning signals
+  - examples or scenario variations
+• synthesize across Project Mgmt + Change Mgmt + Data/AI governance where useful
+• do not restate definitions — operationalise them
+• tone = confident, direct, supportive, workplace pragmatic
 """
 
-    return synthesis_head + "\n\nUser question: " + question
+# --- Router function (still returns single combined prompt) ---
+def route(question: str) -> str:
+    """
+    Currently: behaviour modifier only.
+    Later: routing, classification, memory signals.
+    """
+
+    wrapped = f"{synthesis_head}\n\nUser Question:\n{question}\n\nAnswer using structured actionable outputs, not essays."
+    return wrapped
 
 
-# ----------------------------------------------------------
-# Test Helper (for console confidence)
-# ----------------------------------------------------------
-
-def test_router() -> bool:
+# --- Optional sanity test ---
+def test_router():
     try:
-        out = route("test-run")
-        return "test-run" in out
-    except:
+        out = route("test")
+        return isinstance(out, str) and "test" in out.lower()
+    except Exception:
         return False
