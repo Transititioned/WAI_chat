@@ -141,7 +141,7 @@ def init_chatbot():
                 # Only change made — copy button replaced
                 # ---------------------------------------
                 # OLD CODE: copy_btn = actions.get("copy")  # <─ working clipboard version
-                   copy_btn = actions.get("copy") or add_copy_button(chatbot)
+                copy_btn = actions.get("copy") or add_copy_button(chatbot)
 
                 if "retry" in actions:
                     actions["retry"].elem_classes = ["wf-btn"]
