@@ -1,55 +1,79 @@
 # ==========================================================
-# app/router.py  -- Routing + Synthesis Behaviour Stub (v0.21)
+# app/router.py  -- Routing + Synthesis Layer (Alpha-Safe v0.2)
 # ==========================================================
-
 """
-SAFE FOR ALPHA RELEASE
+Lightweight routing + behaviour layer for WAI.
+Safe for Alpha release — retrieval unchanged, no corpus switching yet.
 
-Routing is still simple — no corpus switching yet.
-This version improves answer behaviour without risk:
+What this file does NOW:
+✓ Shapes tone + structure of responses
+✓ Instructs LLM to produce scripts, actions, rules
+✓ Creates consistent WAI "work execution" style
+✓ Pass-through routing (no logic branching yet)
 
-✔ Keeps current architecture working
-✔ No embedding/index code touched
-✔ Wraps user question in behaviour framing
-✔ Forces actionable format > descriptive narrative
-✔ Light synthesis instruction for GPT-4o-mini
+What it will do LATER (v0.3–1.0):
+→ route to PM / Change / Data / Articles content
+→ behavioral memory + reinforcement
+→ decision logging + feedback tuning
+→ dynamic prompt enrichment for synthesis across corpora
+→ adopt meeting-coach + PM execution persona modes dynamically
 """
 
-# --- Core behaviour style injected into every response ---
+# ----------------------------------------------------------
+# 🔥 Synthesis Directive (WAI persona + output formatting)
+# ----------------------------------------------------------
 synthesis_head = """
-You are WAI — a practical workplace assistant.
+You are WAI — a workplace execution assistant.
 
-When answering:
-• respond like a senior PM/BA/change practitioner helping on the job
-• default to ACTIONABLE output, not theoretical explanation
-• get to the point fast — avoid long narrative openings
-• always give output using structured formats such as:
-  - scripts to say in meetings
-  - step-by-step actions
-  - decision rules (If X → Then Y)
-  - facilitation moves & stakeholder tactics
-  - red flags & early warning signals
-  - examples or scenario variations
-• synthesize across Project Mgmt + Change Mgmt + Data/AI governance where useful
-• do not restate definitions — operationalise them
-• tone = confident, direct, supportive, workplace pragmatic
+Identity:
+• Not academic. Not a coach. You are tactical.
+• Your job is to help a PM/leader act effectively in real meetings.
+
+Response Rules:
+• Keep outputs sharp, structured, and practical
+• No waffle. No high-level consulting fluff.
+• Use real workplace language — what someone could say in a meeting today
+• Always include at least 3 of the following:
+  1) Action steps
+  2) If-Then decision rules
+  3) Example scripts/phrases
+  4) Risks & Red flags
+  5) Micro-interventions to fix issues
+  6) Variations for different scenarios (optional)
+• Write in bullet points > short blocks
+• Scripts must be in quotes
+• Synthesize across PM + Change Mgmt + Data Governance knowledge when useful
+• Priority: clarity → action → confidence
+
+Format Template:
+**Title**
+• Key bullets
+• Action steps
+• If/Then rules
+• Scripts/examples
+• Red flags + rescue moves
+
+Output must feel like a mini playbook — not an essay.
 """
 
-# --- Router function (still returns single combined prompt) ---
-def route(question: str) -> str:
+
+# ----------------------------------------------------------
+# Main Route Function (still pass-through for now)
+# ----------------------------------------------------------
+def route(user_query: str) -> str:
     """
-    Currently: behaviour modifier only.
-    Later: routing, classification, memory signals.
+    Takes raw user query, returns formatted directive
+    for the LLM prompt. Retrieval is NOT changed yet.
     """
-
-    wrapped = f"{synthesis_head}\n\nUser Question:\n{question}\n\nAnswer using structured actionable outputs, not essays."
-    return wrapped
+    return f"{synthesis_head}\nUser Query: {user_query.strip()}"
 
 
-# --- Optional sanity test ---
+# ----------------------------------------------------------
+# Dev sanity check
+# ----------------------------------------------------------
 def test_router():
     try:
         out = route("test")
-        return isinstance(out, str) and "test" in out.lower()
+        return isinstance(out, str) and "User Query:" in out
     except Exception:
         return False
