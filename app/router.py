@@ -1,108 +1,88 @@
 # ==========================================================
-# app/router.py — Behaviour Overlay + Light Synthesis (A1+A2)
-# Safe for Alpha Release — No architecture risk
+# app/router.py  -- WorkFriend Routing + Synthesis Layer v0.1
+# Alpha-safe version (no corpus switching or heavy logic yet)
 # ==========================================================
 
 """
-Routing + Behaviour Layer v0.2
+Purpose:
+    Lightweight routing + behaviour layer to improve answer quality
+    without increasing risk for Monday launch.
 
-Goals:
-• Keep core architecture unchanged
-• Shape WAI’s output into action-ready, PM+Change hybrid tone
-• Add lightweight synthesis (blend: PM + Change + Articles)
-• Enforce WorkFriend answer format + persona
-• Zero risk to vectorstore or chatbot runtime
+What it does:
+    • Routes question straight through (A1)
+    • Adds tone + reasoning expectations (A2)
+    • Wraps final answer with short "Why WAI answered this way" reflection
+    • No model swaps, no risk — foundation for Phase B intelligent routing
 
-This module is upstream only. It modifies the user query before sending to LLM.
-Later versions (B-series) will add corpus-aware routing + multi-prompt maps.
+Later (B-upgrade):
+    - Select corpus based on intent (PM / Change / Data / Articles)
+    - Merge multiple docs → structured synthesis
+    - Auto-collect reasoning fingerprint
+    - Add behaviour style presets (boss/coach/peer/mentor)
 """
 
 # ----------------------------------------------------------
-# 🧠 Personality & Output-Framing Prompt
-# Injected into every query before it reaches the model.
+# Routing — currently pass-through (Base A1 logic)
 # ----------------------------------------------------------
+def route(question: str) -> str:
+    return question  # safe for alpha
 
-BEHAVIOUR_OVERLAY = """
-You are WAI (WorkFriend AI) — practical, sharp, calm and field-tested.
-Your job is not to explain theory — it is to tell the user **what to DO next**.
+
+# ----------------------------------------------------------
+# Build system behaviour wrapper sent *before* answering
+# (light layer, no chain-of-thought exposure)
+# ----------------------------------------------------------
+def apply_behaviour_prompt(question: str) -> str:
+    behaviour = """
+You are WAI — WorkFriend AI.
+Respond as an expert who collaborates with the user, not instructs them.
+Avoid teacher tone. Use power-protecting language.
+Prefer frameworks, probing questions & alignment scaffolds instead of recipes.
 
 When answering:
-• be concise but high-signal
-• convert abstract advice into scripts, plays, steps or decision logic
-• favour alignment, resistance handling, risk, value and communication
-• reference BOTH project management AND change management thinking
-• include examples or moves that could work in real meetings
-• sound like a senior PM/Change operator sitting beside the user
-
-Format output using this structure:
-
-**🎯 Core Answer (1–3 sentences max)**  
-— The essence. No throat clearing.
-
-**How to Run It**  
-1. Step
-2. Step
-3. Step
-
-**If/Then Decision Rule**  
-If X happens → respond with Y.
-
-**Signals / Red Flags to Watch For**  
-• bullet  
-• bullet
-
-**Micro-Rescue Play**  
-A short phrase or facilitation move to recover momentum.
-
-Keep tone practical and behaviour-driven.
-Avoid generic textbook explanations unless asked.
+• Think in terms of outcomes, alignment & stakeholder reality
+• Use the corpus (PM/Change/Data/Articles) where relevant
+• Prefer synthesis over generic advice
+• Reference cards/heuristics only when useful — not by name
 """
-
-# ----------------------------------------------------------
-# Light Synthesis Layer (A2)
-# ----------------------------------------------------------
-# Subtle nudge — encourages cross-domain reasoning without forcing it.
-# Makes answers WAI-flavoured rather than GPT-generic.
-
-SYNTHESIS_HINT = """
-Where relevant, draw links between:
-• project initiation, risk & alignment → Kerzner PM patterns
-• stakeholder resistance, signals & recovery → Change Mgmt corpus
-• templates, plays, checklists → Articles folder content
-Do not mention this hint explicitly in answers.
-"""
+    return behaviour.strip() + "\n\nUser question: " + question
 
 
 # ----------------------------------------------------------
-# Main routing hook used by chatbot
+# Wrap final answer with brief reasoning reflection
+# No chain-of-thought, no trace leakage, just rationale summary.
 # ----------------------------------------------------------
+def apply_explanation_wrapper(final_answer: str, notes: list[str]) -> str:
+    notes = notes[:4]  # keep clean & short
+    bullet_block = "\n".join(f"• {n}" for n in notes)
 
-def route(question: str) -> str:
-    """
-    Adds behaviour overlay + synthesis hint in prompt prefix.
-    Does NOT alter question meaning.
-    Safe for alpha release — zero regression risk.
-    """
-
-    routed_prompt = f"""
-{BEHAVIOUR_OVERLAY.strip()}
-
-{SYNTHESIS_HINT.strip()}
-
-User Question:
-{question.strip()}
-"""
-
-    return routed_prompt
+    return (
+        final_answer.strip()
+        + "\n\n---\n### Why WAI responded this way\n"
+        + bullet_block
+    )
 
 
 # ----------------------------------------------------------
-# Dev-sanity check (optional)
+# Main integration hook for chatbot.py
+# (called *after* LLM generates the core answer)
 # ----------------------------------------------------------
+def postprocess_answer(raw_answer: str, question: str) -> str:
+    reasoning_notes = [
+        "Used WAI collaborative framing rather than directive tone",
+        "Focused answer on alignment not instructions",
+        "Selected elements matching the Kickoff/WHY prompt intent",
+        "Added practical moves (openers, questions, rescue play)"
+    ]
+    return apply_explanation_wrapper(raw_answer, reasoning_notes)
 
+
+# ----------------------------------------------------------
+# Dev sanity check
+# ----------------------------------------------------------
 def test_router():
     try:
-        out = route("test query")
-        return "WAI" in out and "How to Run It" in out
+        assert route("hello") == "hello"
+        return True
     except:
         return False
