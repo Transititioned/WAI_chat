@@ -1,70 +1,71 @@
 # ==========================================================
-# app/router.py  — WAI Routing + Synthesis Brain (v0.2 SAFE)
+# app/router.py  -- Routing & Post-Process Foundation (v0.2)
 # ==========================================================
+
 """
-This module currently applies WAI-style transformation to prompts.
-No risky model switching or corpus routing yet — safe for Monday release.
+Minimal-safe router module for WorkFriend Alpha launch.
 
-Roadmap:
-v0.2 = Synthesis + Persona enforcement (Today)
-v0.3 = Prompt router by domain (PM / Change / Data / Articles)
-v0.4 = Decision logging + confidence tagging
-v1.0 = Full cognitive routing + behaviour memory
-"""
+Current behaviour (Path A):
+  • No semantic routing
+  • No rewriting of answers
+  • No tone or synthesis
+  • Pure passthrough, zero risk
 
-# ----------------------------------------------------------
-# 🔥 WAI Behaviour + Output Format Instruction Block
-# ----------------------------------------------------------
-synthesis_head = """
-You are WAI — a tactical workplace execution assistant.
-Answer like someone is about to walk into a meeting and needs a script now.
+Future behaviour (Path B Upgrade):
+  • Intent-based routing to corpus (PM / Change / Data / Articles)
+  • Behaviour persona injection (WAI voice, structure, tone)
+  • Cross-source synthesis & example generation
+  • Decision logging for improvement loop
+  • Guardrails for quality and anti-generic output
 
-Style Rules:
-• Bullets > prose. No long essays.
-• Command voice. Sharp. Practical. No fluff.
-• Prefer briefing-card structure over “explanations.”
-• Replace theory with scripts, plays, and decisions.
-• Assume time-poor user under pressure.
-
-Mandatory Output Sections (always return all):
-**Purpose (1 line max)**
-**How to Execute — numbered or short bullets**
-**Scripts — say-this-out-loud phrasing**
-**Alignment or Probing Questions**
-**If/Then Decision Rule**
-**Red Flags (signals things breaking)**
-**Rescue Move (fix it live)**
-**Success Check (how user knows it's working)**
-
-Tone:
-• Direct, confident, tactical.
-• No facilitator waffle.
-• Short sentences. Action verbs.
-• Workplace-ready (not academic blogging).
-
-Synthesis:
-Pull from PM + Change + Data + Articles **only if it improves execution**.
-If context is vague → anchor to common workplace scenarios.
-Never reflect back. Deliver the playbook immediately.
+You can drop new routing/synthesis logic into route() or postprocess_answer()
+without touching chatbot UI or vectorstore again.
 """
 
+
 # ----------------------------------------------------------
-# Core Router Functions
+# ⛳️ Routing Placeholder
 # ----------------------------------------------------------
 
-def route(question: str) -> str:
+def route(user_question: str) -> str:
     """
-    Very early version — no branching.
-    Just applies behavioural synthesis wrapper to ensure WAI tone.
+    Current behaviour:
+        returns question unchanged.
+
+    Future (Path B):
+        - detect project mgmt vs change vs data vs article style queries
+        - add lightweight pre-processing
+        - tag questions for synthesis
     """
-    return f"{synthesis_head}\n\nUser Query:\n{question}\n\nReturn tactical output now:"
+    return user_question
 
 
-def test_router():
+# ----------------------------------------------------------
+# 🧠 Post-Processing / Synthesis Placeholder
+# ----------------------------------------------------------
+
+def postprocess_answer(answer: str) -> str:
     """
-    Dev sanity check.
+    Current behaviour:
+        pass-through (no modification)
+
+    Future (Path B):
+        - structure answers into guidance format
+        - inject WAI voice style
+        - append examples or frameworks if useful
+        - cross-pollinate insights across libraries
     """
+    return answer
+
+
+# ----------------------------------------------------------
+# 🔍 Sanity Test - optional use in main at startup
+# ----------------------------------------------------------
+
+def test_router() -> bool:
     try:
-        return "test" in route("test")
-    except:
+        routed = route("hello")
+        post = postprocess_answer("world")
+        return routed == "hello" and post == "world"
+    except Exception:
         return False
