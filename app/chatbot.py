@@ -1,5 +1,5 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend WAI (v4.x Router + Mint UX + Enter-to-send fix)
+# app/chatbot.py — WorkFriend WAI (v4.x Router + Mint UX + Spinner + Enter-to-send)
 # ==========================================================
 
 import gradio as gr
@@ -33,7 +33,7 @@ def init_chatbot():
     )
 
     # ------------------------------------------------------
-    # Vector store build (current ARTICLES only for alpha)
+    # Vector store build
     # ------------------------------------------------------
     docs = []
     for md_file in ARTICLES_DIR.glob("*.md"):
@@ -42,9 +42,7 @@ def init_chatbot():
             continue
         chunks = [text[i:i + 1500] for i in range(0, len(text), 1500)]
         for chunk in chunks:
-            docs.append(
-                {"content": chunk, "metadata": {"source": md_file.name}}
-            )
+            docs.append({"content": chunk, "metadata": {"source": md_file.name}})
 
     vectordb = Chroma.from_texts(
         texts=[d["content"] for d in docs],
@@ -54,15 +52,9 @@ def init_chatbot():
     retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
     # ======================================================
-    # ⛑️ Router-aware Retrieval + Answer logic
+    # Router + Retrieval logic
     # ======================================================
     def retrieve_and_answer(question: str) -> str:
-        """
-        1. Ask router for system framing (lens / persona).
-        2. Retrieve context from vectorstore.
-        3. Call LLM with structured prompt.
-        4. Let router post-process for alpha disclaimer etc.
-        """
         system_prompt = route(question)
 
         retrieved_docs = retriever.invoke(question)
@@ -73,7 +65,7 @@ def init_chatbot():
             "Context:\n{context}\n\n"
             "Respond using this structure:\n"
             "1. **Answer** – clear, useful guidance\n"
-            "2. **Why this matters** – reasoning / principles\n"
+            "2. **Why this matters** – reasoning\n"
             "3. **Plays / Examples** – scripts or micro-moves when helpful\n\n"
             "User Question: {question}"
         )
@@ -85,252 +77,131 @@ def init_chatbot():
         )
 
         response = llm.invoke(filled)
-        # postprocess adds the alpha-warning suffix, etc.
-        return postprocess_answer(question, response.content)
+        return postprocess_answer(response.content)
 
     def answer_fn(message, history):
-        """
-        Chat handler:
-        - append user msg
-        - get WAI answer
-        - append assistant msg
-        - CLEAR the input box (second return value = "")
-        """
         try:
             history = history + [{"role": "user", "content": message}]
             answer = retrieve_and_answer(message)
             history = history + [{"role": "assistant", "content": answer}]
-            return history, ""
+            return history, ""   # Clears input box (important!!)
         except Exception as e:
-            history = history + [{
-                "role": "assistant",
-                "content": f"⚠️ Error: {e}"
-            }]
-            return history, ""
+            return history + [{"role":"assistant","content":f"⚠️ Error: {e}"}], ""
 
     # ======================================================
-    # 🎨 Styling (Desktop + Mobile, Mint brand buttons)
+    # CSS (UX + Mint Buttons)
     # ======================================================
     custom_css = """
     .gradio-container *,
     .gradio-container,
     .block,
     .wrap,
-    .gradio-app,
-    .svelte-1ipelgc {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
-        gap: 0 !important;
-    }
-
-    footer, .footer, .svelte-1ipelgc > div:last-child {
-        display: none !important;
-        height: 0 !important;
-    }
+    .gradio-app { margin:0!important; padding:0!important; }
+    footer,.footer { display:none!important; }
 
     .chatbot-area {
-        max-height: 275px !important;
-        min-height: 275px !important;
-        overflow: hidden !important;
-        margin: 0 !important;
-        padding: 0 !important;
+        max-height:275px!important;
+        min-height:275px!important;
+        overflow:hidden!important;
     }
-    .chatbot-area > div:not(.gr-label) {
-        max-height: 275px !important;
-        min-height: 275px !important;
-        overflow-y: auto !important;
+    .chatbot-area > div:not(.gr-label){
+        max-height:275px!important;
+        min-height:275px!important;
+        overflow-y:auto!important;
     }
 
-    .input-controls-row {
-        margin-top: -12px !important;
-        padding: 0 !important;
-        align-items: flex-end !important;
-        gap: 1rem !important;
-    }
+    .input-controls-row { margin-top:-12px!important; gap:1rem!important; }
 
-    /* -----------------------------------------
-       🍃 WorkFriend Mint Buttons (Brand Override)
-    ------------------------------------------ */
-    .wf-btn,
-    .wf-btn *,
-    button.wf-btn,
-    button.wf-btn:hover {
-        background-color: #00C4A7 !important;
-        color: #ffffff !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        height: 38px !important;
-        width: 100% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 6px !important;
-        cursor: pointer !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
-        transition: all 0.2s ease-in-out !important;
-    }
-    .wf-btn:hover {
-        background-color: #00A38A !important;
-        transform: translateY(-1px) !important;
-    }
+    .wf-btn { background:#00C4A7!important; color:#fff!important;
+        border-radius:8px!important; font-weight:600!important; height:38px!important; }
+    .wf-btn:hover { background:#00A38A!important; transform:translateY(-1px)!important;}
 
-    .right-controls {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 8px !important;
-        width: 180px !important;
-    }
+    .right-controls { display:flex!important; flex-direction:column!important; gap:8px!important; width:180px!important; }
 
-    /* ------------------------------
-       📱 MOBILE UX FIXES
-    ------------------------------ */
-    @media (max-width: 768px) {
-
-        .feedback-wrapper {
-            padding-bottom: 16px !important;
-            position: relative !important;
-            z-index: 50 !important;
-        }
-
-        .chatbot-area {
-            overflow-y: auto !important;
-            padding-bottom: 20px !important;
-        }
-
-        .input-controls-row {
-            flex-direction: row !important;
-            align-items: flex-end !important;
-        }
-
-        .right-controls {
-            width: 120px !important;
-            flex-direction: column !important;
-            gap: 6px !important;
-        }
-
-        /* SEND top */
-        .right-controls button:nth-child(2) { order: 1 !important; }
-
-        /* RETRY bottom */
-        .right-controls button:nth-child(1) { order: 2 !important; }
-
-        .input-controls-row textarea,
-        .input-controls-row .gradio-input,
-        .input-controls-row .gradio-textbox {
-            flex: 1 !important;
-        }
+    @media (max-width:768px){
+        .right-controls { width:120px!important; }
+        .right-controls button:nth-child(2){ order:1!important;}
+        .right-controls button:nth-child(1){ order:2!important;}
     }
     """
 
-    # ======================================================
-    # 🚀 Gradio UI
-    # ======================================================
     theme = gr.themes.Default()
 
+    # ======================================================
+    # UI
+    # ======================================================
     with gr.Blocks(theme=theme, css=custom_css) as demo:
-        # --------------------------------------------------
-        # 💤 Wake-up message (ALWAYS FIRST)
-        # --------------------------------------------------
-        gr.Markdown(
-            "### 💤 WAI is waking up…<br>This can take 5–10 seconds if the server was resting.",
-            elem_id="wai_wakeup"
-        )
 
-        # HF Space wake-up watcher
+        gr.Markdown("### 💤 WAI is waking up… (first load 5–10 sec)", elem_id="wai_wakeup")
+
+        # Wake-up watcher
         gr.HTML("""
         <script>
-        function wai_check_ready() {
-            const chat = document.querySelector('.chatbot-area');
-            const ta   = document.querySelector('textarea');
-            const btn  = document.querySelector('button');
-            if (chat && ta && btn) {
-                const wake = document.querySelector('#wai_wakeup');
-                if (wake) wake.style.display = "none";
-                return;
-            }
-            setTimeout(wai_check_ready, 500);
+        function wai_ready(){
+            const c=document.querySelector('.chatbot-area'),t=document.querySelector('textarea'),b=document.querySelector('button');
+            if(c&&t&&b){document.querySelector('#wai_wakeup').style.display="none";return;}
+            setTimeout(wai_ready,400);
         }
-        setTimeout(wai_check_ready, 350);
+        setTimeout(wai_ready,300);
         </script>
         """)
 
-        # --------------------------------------------------
-        # Chatbot UI
-        # --------------------------------------------------
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(
-            label="WorkFriend Conversation",
-            type="messages",
-            height=420,
-            elem_classes=["chatbot-area"],
-        )
-
+        chatbot = gr.Chatbot(type="messages", height=420, elem_classes=["chatbot-area"])
         add_feedback_below_chatbot()
 
         with gr.Row(elem_classes="input-controls-row"):
-            user_input = gr.Textbox(
-                placeholder="Ask me something...",
-                label="Your question:",
-                scale=4
-            )
+            user_input = gr.Textbox(placeholder="Ask me something...", label="Your question:", scale=4)
 
             with gr.Column(elem_classes="right-controls", scale=0):
-                copy_btn = gr.Button(
-                    "📋 Copy Last Response",
-                    elem_classes=["wf-btn"],
-                    variant="primary"
-                )
-
+                copy_btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"])
                 actions = add_user_actions(chatbot, retrieve_and_answer)
                 retry_btn = actions.get("retry")
                 if isinstance(retry_btn, gr.Button):
-                    retry_btn.elem_classes = (retry_btn.elem_classes or []) + ["wf-btn"]
+                    retry_btn.elem_classes=("wf-btn",)
 
-                send_btn = gr.Button(
-                    "Send",
-                    elem_classes=["wf-btn"],
-                    variant="primary"
-                )
+                send_btn = gr.Button("Send", elem_classes=["wf-btn"])
 
-        # NOTE: outputs include BOTH chatbot + textbox so the input clears
-        send_btn.click(
-            fn=answer_fn,
-            inputs=[user_input, chatbot],
-            outputs=[chatbot, user_input],
-        )
-        user_input.submit(
-            fn=answer_fn,
-            inputs=[user_input, chatbot],
-            outputs=[chatbot, user_input],
-        )
+        # Main bindings
+        send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
+        user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
 
-        # Enter key handler (Enter = send, Shift+Enter = newline)
+        # ======================================================
+        # Spinner Injection — no router change, no UX break
+        # ======================================================
         gr.HTML("""
         <script>
-        document.addEventListener("keydown", function (e) {
-            const ta = e.target;
-            if (!ta || ta.tagName !== "TEXTAREA") return;
+        function wai_spinner(){
+            const box=document.querySelector('.chatbot-area');
+            if(!box)return;
+            let s=document.createElement('div');
+            s.innerHTML="⏳ Thinking...";
+            s.style="font-size:.85rem;color:#00C4A7;margin:6px;opacity:.8;";
+            box.appendChild(s);
+            setTimeout(()=>s.remove(),15000);
+        }
+        document.addEventListener("click",e=>{
+            if(e.target.innerText.trim()==="Send") wai_spinner();
+        });
+        document.addEventListener("keydown",e=>{
+            if(e.target.tagName==="TEXTAREA"&&!e.shiftKey&&e.key==="Enter") wai_spinner();
+        });
+        </script>
+        """)
 
-            // Shift+Enter -> newline
-            if (e.shiftKey && e.key === "Enter") {
-                e.stopPropagation();
-                return;
-            }
-
-            // Enter -> click Send
-            if (!e.shiftKey && e.key === "Enter") {
+        # Enter behaviour (preserved)
+        gr.HTML("""
+        <script>
+        document.addEventListener("keydown",function(e){
+            const ta=e.target;
+            if(!ta||ta.tagName!=="TEXTAREA")return;
+            if(e.shiftKey&&e.key==="Enter")return;
+            if(!e.shiftKey&&e.key==="Enter"){
                 e.preventDefault();
-                e.stopPropagation();
-                const sendBtn = Array.from(
-                    document.querySelectorAll("button")
-                ).find(btn => btn.textContent.trim() === "Send");
-                if (sendBtn) sendBtn.click();
-                return false;
+                document.querySelectorAll("button").forEach(b=>{
+                    if(b.innerText.trim()==="Send")b.click();
+                });
             }
         });
         </script>
