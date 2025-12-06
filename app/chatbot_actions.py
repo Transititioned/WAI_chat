@@ -2,16 +2,11 @@
 # app/chatbot_actions.py
 # ----------------------------------------------------------
 # Modular chatbot actions for WorkFriend / CaveBot
-# ✅ Retry button aligned with input
-# ✅ Single feedback bar (centered)
+# Now includes spinner behavior on send
 # ==========================================================
 
 import gradio as gr
 
-
-# ----------------------------------------------------------
-# Feedback (👍👎) SVG Buttons – sandbox-safe inline logic
-# ----------------------------------------------------------
 def add_feedback_below_chatbot():
     """Adds balanced thumbs-up/down SVG buttons with sandbox-safe inline logic."""
     css = """
@@ -81,13 +76,9 @@ def add_feedback_below_chatbot():
         </div>
     </div>
     """
-    # Return an HTML block — Gradio registers it only once per call
     return gr.HTML(css + html)
 
 
-# ----------------------------------------------------------
-# Retry Last Action
-# ----------------------------------------------------------
 def add_retry_action(chatbot, retrieve_fn):
     """Adds a Retry Last button that re-runs the last user message."""
     def retry_last(history):
@@ -127,10 +118,20 @@ def add_retry_action(chatbot, retrieve_fn):
     return retry_btn
 
 
-# ----------------------------------------------------------
-# Combined Actions Loader
-# ----------------------------------------------------------
 def add_user_actions(chatbot, retrieve_fn):
     """Return retry button only — no feedback created here."""
     return {"retry": add_retry_action(chatbot, retrieve_fn)}
 
+
+# ----------------------------------------------------------
+# Spinner and Send Action
+# ----------------------------------------------------------
+def add_spinner_behavior(chatbot, send_btn):
+    """Adds spinner behavior when sending a message."""
+    send_btn.click(
+        fn=lambda: gr.update(visible=True),
+        inputs=[],
+        outputs=chatbot,
+        _js="() => { document.querySelector('.chatbot-area .gradio-spinner').style.display = 'block'; }"
+    )
+    return send_btn
