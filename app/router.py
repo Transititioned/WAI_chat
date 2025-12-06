@@ -1,71 +1,108 @@
 # ==========================================================
-# app/router.py  -- Routing & Post-Process Foundation (v0.2)
+# app/router.py — Behaviour Overlay + Light Synthesis (A1+A2)
+# Safe for Alpha Release — No architecture risk
 # ==========================================================
 
 """
-Minimal-safe router module for WorkFriend Alpha launch.
+Routing + Behaviour Layer v0.2
 
-Current behaviour (Path A):
-  • No semantic routing
-  • No rewriting of answers
-  • No tone or synthesis
-  • Pure passthrough, zero risk
+Goals:
+• Keep core architecture unchanged
+• Shape WAI’s output into action-ready, PM+Change hybrid tone
+• Add lightweight synthesis (blend: PM + Change + Articles)
+• Enforce WorkFriend answer format + persona
+• Zero risk to vectorstore or chatbot runtime
 
-Future behaviour (Path B Upgrade):
-  • Intent-based routing to corpus (PM / Change / Data / Articles)
-  • Behaviour persona injection (WAI voice, structure, tone)
-  • Cross-source synthesis & example generation
-  • Decision logging for improvement loop
-  • Guardrails for quality and anti-generic output
+This module is upstream only. It modifies the user query before sending to LLM.
+Later versions (B-series) will add corpus-aware routing + multi-prompt maps.
+"""
 
-You can drop new routing/synthesis logic into route() or postprocess_answer()
-without touching chatbot UI or vectorstore again.
+# ----------------------------------------------------------
+# 🧠 Personality & Output-Framing Prompt
+# Injected into every query before it reaches the model.
+# ----------------------------------------------------------
+
+BEHAVIOUR_OVERLAY = """
+You are WAI (WorkFriend AI) — practical, sharp, calm and field-tested.
+Your job is not to explain theory — it is to tell the user **what to DO next**.
+
+When answering:
+• be concise but high-signal
+• convert abstract advice into scripts, plays, steps or decision logic
+• favour alignment, resistance handling, risk, value and communication
+• reference BOTH project management AND change management thinking
+• include examples or moves that could work in real meetings
+• sound like a senior PM/Change operator sitting beside the user
+
+Format output using this structure:
+
+**🎯 Core Answer (1–3 sentences max)**  
+— The essence. No throat clearing.
+
+**How to Run It**  
+1. Step
+2. Step
+3. Step
+
+**If/Then Decision Rule**  
+If X happens → respond with Y.
+
+**Signals / Red Flags to Watch For**  
+• bullet  
+• bullet
+
+**Micro-Rescue Play**  
+A short phrase or facilitation move to recover momentum.
+
+Keep tone practical and behaviour-driven.
+Avoid generic textbook explanations unless asked.
+"""
+
+# ----------------------------------------------------------
+# Light Synthesis Layer (A2)
+# ----------------------------------------------------------
+# Subtle nudge — encourages cross-domain reasoning without forcing it.
+# Makes answers WAI-flavoured rather than GPT-generic.
+
+SYNTHESIS_HINT = """
+Where relevant, draw links between:
+• project initiation, risk & alignment → Kerzner PM patterns
+• stakeholder resistance, signals & recovery → Change Mgmt corpus
+• templates, plays, checklists → Articles folder content
+Do not mention this hint explicitly in answers.
 """
 
 
 # ----------------------------------------------------------
-# ⛳️ Routing Placeholder
+# Main routing hook used by chatbot
 # ----------------------------------------------------------
 
-def route(user_question: str) -> str:
+def route(question: str) -> str:
     """
-    Current behaviour:
-        returns question unchanged.
-
-    Future (Path B):
-        - detect project mgmt vs change vs data vs article style queries
-        - add lightweight pre-processing
-        - tag questions for synthesis
+    Adds behaviour overlay + synthesis hint in prompt prefix.
+    Does NOT alter question meaning.
+    Safe for alpha release — zero regression risk.
     """
-    return user_question
+
+    routed_prompt = f"""
+{BEHAVIOUR_OVERLAY.strip()}
+
+{SYNTHESIS_HINT.strip()}
+
+User Question:
+{question.strip()}
+"""
+
+    return routed_prompt
 
 
 # ----------------------------------------------------------
-# 🧠 Post-Processing / Synthesis Placeholder
+# Dev-sanity check (optional)
 # ----------------------------------------------------------
 
-def postprocess_answer(answer: str) -> str:
-    """
-    Current behaviour:
-        pass-through (no modification)
-
-    Future (Path B):
-        - structure answers into guidance format
-        - inject WAI voice style
-        - append examples or frameworks if useful
-        - cross-pollinate insights across libraries
-    """
-    return answer
-
-
-# ----------------------------------------------------------
-# 🔍 Sanity Test - optional use in main at startup
-# ----------------------------------------------------------
-
-def test_router() -> bool:
+def test_router():
     try:
-        routed = route("hello")
-        post = postprocess_answer("world")
-        return routed == "hello" and post == "world"
-    except Exception:
+        out = route("test query")
+        return "WAI" in out and "How to Run It" in out
+    except:
         return False
