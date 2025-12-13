@@ -1,6 +1,5 @@
-# ========================================================== 
+# ==========================================================
 # app/chatbot.py — WorkFriend WAI (v4.x)
-# Spinner + Router + Good UX + WakeMsg disabled + Scroll bug fix
 #
 # ARCHITECTURE NOTE:
 # ------------------
@@ -10,11 +9,20 @@
 #   - FastAPI (/chat) endpoint via handle_message()
 #
 # This keeps the application core UI-agnostic and portable.
+#
+# IMPORTANT:
+# -----------
+# This file MUST NOT:
+#   - call demo.launch()
+#   - import uvicorn
+#   - bind ports
+#
+# Gradio is mounted by FastAPI in main.py.
 # ==========================================================
 
-import gradio as gr
 import os
 from pathlib import Path
+import gradio as gr
 
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -45,22 +53,27 @@ llm = ChatOpenAI(
     openai_api_key=openai_key
 )
 
+# ----------------------------------------------------------
 # Load markdown corpus into Chroma
+# ----------------------------------------------------------
+
 docs = []
 for md in ARTICLES_DIR.glob("*.md"):
     txt = md.read_text(encoding="utf-8").strip()
     if not txt:
         continue
     for i in range(0, len(txt), 1500):
-        docs.append({
-            "content": txt[i:i + 1500],
-            "metadata": {"source": md.name}
-        })
+        docs.append(
+            {
+                "content": txt[i:i + 1500],
+                "metadata": {"source": md.name},
+            }
+        )
 
 vectordb = Chroma.from_texts(
     texts=[d["content"] for d in docs],
     embedding=embedding,
-    metadatas=[d["metadata"] for d in docs]
+    metadatas=[d["metadata"] for d in docs],
 )
 
 retriever = vectordb.as_retriever(search_kwargs={"k": 3})
@@ -74,19 +87,12 @@ def retrieve_and_answer(q: str) -> str:
     """
     Core retrieval + routing + LLM answer pipeline.
 
-    This function:
-      - routes the question
-      - retrieves relevant context
-      - builds the prompt
-      - calls the LLM
-      - post-processes the answer
-
-    It contains NO UI or framework-specific logic.
+    UI-agnostic. No Gradio, no FastAPI, no session logic.
     """
     lens = route(q)
 
     docs = retriever.invoke(q)
-    context = "\n\n".join([d.page_content for d in docs])
+    context = "\n\n".join(d.page_content for d in docs)
 
     prompt = ChatPromptTemplate.from_template(
         "{system}\n\nContext:\n{context}\n\n"
@@ -95,7 +101,11 @@ def retrieve_and_answer(q: str) -> str:
         "2. **Why it matters**\n"
         "3. **Plays/Examples**\n\n"
         "User: {q}"
-    ).format(system=lens, context=context, q=q)
+    ).format(
+        system=lens,
+        context=context,
+        q=q,
+    )
 
     res = llm.invoke(prompt)
     return postprocess_answer(res.content)
@@ -111,26 +121,31 @@ def handle_message(message: str) -> str:
 
     This is the SINGLE entry point used by:
       - FastAPI (/chat)
-      - any future backend integrations
-
-    Keeping this thin makes the architecture portable
-    and avoids coupling APIs to Gradio internals.
+      - future backend integrations
     """
     return retrieve_and_answer(message)
 
 
 # ==========================================================
-# Gradio UI (presentation layer)
+# Gradio UI (presentation layer ONLY)
 # ==========================================================
 
 def init_chatbot():
+    """
+    Builds and returns the Gradio UI.
+
+    NOTE:
+    -----
+    This function MUST ONLY construct components.
+    It must NEVER call demo.launch().
+    """
 
     def answer_fn(msg, history):
         try:
             history = history + [{"role": "user", "content": msg}]
             reply = retrieve_and_answer(msg)
             history = history + [{"role": "assistant", "content": reply}]
-            return history, ""        # clear input + auto spinner
+            return history, ""
         except Exception as e:
             return history + [{"role": "assistant", "content": f"⚠️ {e}"}], ""
 
@@ -155,23 +170,33 @@ def init_chatbot():
         align-items:flex-end;
         gap:1rem;
     }
-    .right-controls { width:180px; display:flex; flex-direction:column; gap:8px; }
-    .wf-btn { background:#00C4A7 !important; color:white !important;
-             border-radius:8px !important; font-weight:600 !important;
-             height:38px; display:flex; align-items:center; justify-content:center; }
+    .right-controls {
+        width:180px;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+    }
+    .wf-btn {
+        background:#00C4A7 !important;
+        color:white !important;
+        border-radius:8px !important;
+        font-weight:600 !important;
+        height:38px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+    }
     .wf-btn:hover { background:#00A38A !important; }
     """
 
-    theme = gr.themes.Default()
-
-    with gr.Blocks(theme=theme, css=custom_css) as demo:
+    with gr.Blocks(css=custom_css) as demo:
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             type="messages",
-            elem_classes=["chatbot-area"]
+            elem_classes=["chatbot-area"],
         )
 
         add_feedback_below_chatbot()
@@ -181,14 +206,12 @@ def init_chatbot():
             user_input = gr.Textbox(
                 placeholder="Ask WAI...",
                 label="Your question:",
-                scale=4
+                scale=4,
             )
 
             with gr.Column(elem_classes=["right-controls"], scale=0):
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
-
-                copy_btn = actions.get("copy") or add_copy_button(chatbot)
 
                 if "retry" in actions:
                     actions["retry"].elem_classes = ["wf-btn"]
@@ -198,15 +221,17 @@ def init_chatbot():
         send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
         user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
 
-        gr.HTML("""
-        <script>
-        document.addEventListener("keydown", function(e){
-            if(e.target.tagName==="TEXTAREA" && e.key==="Enter" && !e.shiftKey){
-                e.preventDefault();
-                document.querySelector('button.wf-btn:last-child').click();
-            }
-        });
-        </script>
-        """)
+        gr.HTML(
+            """
+            <script>
+            document.addEventListener("keydown", function(e){
+                if(e.target.tagName==="TEXTAREA" && e.key==="Enter" && !e.shiftKey){
+                    e.preventDefault();
+                    document.querySelector('button.wf-btn:last-child').click();
+                }
+            });
+            </script>
+            """
+        )
 
     return demo
