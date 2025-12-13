@@ -173,6 +173,26 @@ def init_chatbot():
         overflow: hidden;
     }
 
+
+    /* FIX: Gradio 6 feedback SVGs are stroke-based, not fill-based */
+
+        button[aria-label="Like"] svg,
+        button[aria-label="Dislike"] svg {
+        stroke: #666 !important;
+        stroke-width: 2 !important;
+        opacity: 1 !important;
+    }
+
+        button[aria-label="Like"]:hover svg,
+        button[aria-label="Dislike"]:hover svg {
+        stroke: #00C4A7 !important;
+    }
+
+
+
+
+
+
     .chatbot-area > .gr-chatbot {
         height:100% !important;
         overflow-y:auto !important;
