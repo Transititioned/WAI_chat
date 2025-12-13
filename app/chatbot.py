@@ -161,9 +161,19 @@ def init_chatbot():
         except Exception as e:
             return history + [{"role": "assistant", "content": f"⚠️ {e}"}], ""
 
+    
+    
+    
+    
+    
+    
     # ------------------------------------------------------
     # CSS — known-good layout + scroll fix
     # ------------------------------------------------------
+     
+      
+    
+    
     custom_css = """
     footer, .footer { display:none !important; }
 
@@ -192,6 +202,17 @@ def init_chatbot():
         flex-direction:column;
         gap:8px;
     }
+
+
+
+    :root {
+          --button-primary-background: #00C4A7 !important;
+          --button-primary-background-hover: #00A38A !important;
+          --button-primary-text-color: #ffffff !important;
+    }
+
+
+    
     """
 
     with gr.Blocks(theme=WAI_THEME, css=custom_css) as demo:
