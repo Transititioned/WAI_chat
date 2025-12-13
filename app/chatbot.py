@@ -161,19 +161,10 @@ def init_chatbot():
         except Exception as e:
             return history + [{"role": "assistant", "content": f"⚠️ {e}"}], ""
 
-    
-    
-    
-    
-    
-    
     # ------------------------------------------------------
     # CSS — known-good layout + scroll fix
     # ------------------------------------------------------
-     
-      
-    
-    
+
     custom_css = """
     footer, .footer { display:none !important; }
 
@@ -203,16 +194,26 @@ def init_chatbot():
         gap:8px;
     }
 
-
-
     :root {
-          --button-primary-background: #00C4A7 !important;
-          --button-primary-background-hover: #00A38A !important;
-          --button-primary-text-color: #ffffff !important;
+        --button-primary-background: #00C4A7 !important;
+        --button-primary-background-hover: #00A38A !important;
+        --button-primary-text-color: #ffffff !important;
     }
 
+    /* =====================================================
+       FIX: SVG up/down vote icons not visible (HF + Gradio 6)
+       ===================================================== */
 
-    
+    .wf-feedback-btn svg,
+    #wf-feedback-row svg {
+        fill: #555 !important;
+        opacity: 1 !important;
+    }
+
+    .wf-feedback-btn:hover svg,
+    #wf-feedback-row button:hover svg {
+        fill: #00C4A7 !important;
+    }
     """
 
     with gr.Blocks(theme=WAI_THEME, css=custom_css) as demo:
