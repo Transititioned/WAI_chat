@@ -17,12 +17,13 @@
 #   - import uvicorn
 #   - bind ports
 #
-# Gradio is mounted by FastAPI in main.py.
+# Gradio is mounted by FastAPI in server.py
 # ==========================================================
 
 import os
 from pathlib import Path
 import gradio as gr
+from gradio.themes import Default, colors
 
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -30,6 +31,17 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 from app.router import route, postprocess_answer
+
+
+# ==========================================================
+# Gradio Theme — Mint Green (Gradio 6 compliant)
+# ==========================================================
+
+WAI_THEME = Default(
+    primary_hue=colors.emerald,
+    secondary_hue=colors.gray,
+    neutral_hue=colors.gray,
+)
 
 
 # ==========================================================
@@ -44,13 +56,13 @@ openai_key = os.getenv("OPENAI_API_KEY")
 
 embedding = OpenAIEmbeddings(
     model="text-embedding-3-small",
-    openai_api_key=openai_key
+    openai_api_key=openai_key,
 )
 
 llm = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0.28,
-    openai_api_key=openai_key
+    openai_api_key=openai_key,
 )
 
 # ----------------------------------------------------------
@@ -62,6 +74,7 @@ for md in ARTICLES_DIR.glob("*.md"):
     txt = md.read_text(encoding="utf-8").strip()
     if not txt:
         continue
+
     for i in range(0, len(txt), 1500):
         docs.append(
             {
@@ -84,6 +97,10 @@ retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 # ==========================================================
 
 def retrieve_and_answer(q: str) -> str:
+    """
+    Core retrieval + routing + LLM answer pipeline.
+    UI-agnostic. No Gradio, no FastAPI, no session logic.
+    """
     lens = route(q)
 
     docs = retriever.invoke(q)
@@ -111,6 +128,13 @@ def retrieve_and_answer(q: str) -> str:
 # ==========================================================
 
 def handle_message(message: str) -> str:
+    """
+    Stable, UI-agnostic message handler.
+
+    This is the SINGLE entry point used by:
+      - FastAPI (/chat)
+      - future backend integrations
+    """
     return retrieve_and_answer(message)
 
 
@@ -119,6 +143,14 @@ def handle_message(message: str) -> str:
 # ==========================================================
 
 def init_chatbot():
+    """
+    Builds and returns the Gradio UI.
+
+    NOTE:
+    -----
+    This function MUST ONLY construct components.
+    It must NEVER call demo.launch().
+    """
 
     def answer_fn(msg, history):
         try:
@@ -130,7 +162,7 @@ def init_chatbot():
             return history + [{"role": "assistant", "content": f"⚠️ {e}"}], ""
 
     # ------------------------------------------------------
-    # CSS — known good + mint button override ONLY
+    # CSS — known-good layout + scroll fix
     # ------------------------------------------------------
     custom_css = """
     footer, .footer { display:none !important; }
@@ -160,43 +192,9 @@ def init_chatbot():
         flex-direction:column;
         gap:8px;
     }
-
-    .wf-btn {
-        background:#00C4A7 !important;
-        color:white !important;
-        border-radius:8px !important;
-        font-weight:600 !important;
-        height:38px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-    }
-
-    .wf-btn:hover {
-        background:#00A38A !important;
-    }
-
-    /* ======================================================
-       FORCE mint green on ALL Gradio buttons (ONLY CHANGE)
-       ====================================================== */
-
-    button,
-    .gr-button,
-    .gr-button-primary {
-        background:#00C4A7 !important;
-        color:white !important;
-        border-radius:8px !important;
-        font-weight:600 !important;
-    }
-
-    button:hover,
-    .gr-button:hover,
-    .gr-button-primary:hover {
-        background:#00A38A !important;
-    }
     """
 
-    with gr.Blocks(css=custom_css) as demo:
+    with gr.Blocks(theme=WAI_THEME, css=custom_css) as demo:
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
@@ -219,10 +217,7 @@ def init_chatbot():
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
 
-                if "retry" in actions:
-                    actions["retry"].elem_classes = ["wf-btn"]
-
-                send_btn = gr.Button("Send", elem_classes=["wf-btn"])
+                send_btn = gr.Button("Send")
 
         send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
         user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
@@ -233,7 +228,7 @@ def init_chatbot():
             document.addEventListener("keydown", function(e){
                 if(e.target.tagName==="TEXTAREA" && e.key==="Enter" && !e.shiftKey){
                     e.preventDefault();
-                    document.querySelector('button.wf-btn:last-child').click();
+                    document.querySelector('button').click();
                 }
             });
             </script>
