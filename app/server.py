@@ -9,11 +9,23 @@ from app.chatbot import init_chatbot
 
 app = FastAPI(title="WorkFriend WAI")
 
+
+# ---------------------------
+# Startup lifecycle
+# ---------------------------
 @app.on_event("startup")
-async def startup():
+def startup():
     bootstrap()
 
+
+# ---------------------------
+# API routes
+# ---------------------------
 app.include_router(api_router)
 
+
+# ---------------------------
+# Gradio UI
+# ---------------------------
 demo = init_chatbot()
-mount_gradio_app(app, demo, path="/")
+app = mount_gradio_app(app, demo, path="/")
