@@ -172,15 +172,42 @@ def init_chatbot():
     }
     """
 
-    with gr.Blocks(css=custom_css) as demo:
 
-        gr.Markdown("### 💬 WorkFriend Chatbot")
 
+    
+
+
+
+
+
+
+
+
+        
+
+     with gr.Blocks(css=custom_css) as demo:
+
+         gr.Markdown("### 💬 WorkFriend Chatbot")
+         
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
-            type="messages",
             elem_classes=["chatbot-area"],
         )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
         # Feedback directly under chat (visual fix only)
         add_feedback_below_chatbot()
