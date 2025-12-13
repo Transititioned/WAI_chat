@@ -1,6 +1,15 @@
 # ========================================================== 
 # app/chatbot.py — WorkFriend WAI (v4.x)
 # Spinner + Router + Good UX + WakeMsg disabled + Scroll bug fix
+#
+# NOTE:
+# A thin wrapper function `handle_message()` is exposed so
+# this chatbot logic can be reused by:
+#   - Gradio UI (interactive demo)
+#   - FastAPI endpoint (stable backend API)
+#
+# This keeps the core retrieval + LLM logic UI-agnostic
+# and makes the backend portable off Hugging Face later.
 # ==========================================================
 
 import gradio as gr
@@ -9,8 +18,27 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import os
 from pathlib import Path
+
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 from app.router import route, postprocess_answer
+
+
+# ----------------------------------------------------------
+# Core message handler (UI-agnostic wrapper)
+# ----------------------------------------------------------
+def handle_message(message: str) -> str:
+    """
+    Core message handler used by both:
+      - Gradio UI callbacks
+      - FastAPI /chat endpoint
+
+    This wrapper deliberately contains NO Gradio-specific
+    concepts (history, UI state, components).
+
+    It simply delegates to the retrieval + answer pipeline
+    defined inside init_chatbot().
+    """
+    return retrieve_and_answer(message)
 
 
 def init_chatbot():
@@ -21,12 +49,19 @@ def init_chatbot():
     ARTICLES_DIR = Path("content/articles")
     if not ARTICLES_DIR.exists():
         ARTICLES_DIR = Path(".")
+
     openai_key = os.getenv("OPENAI_API_KEY")
 
-    embedding = OpenAIEmbeddings(model="text-embedding-3-small",
-                                openai_api_key=openai_key)
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.28,
-                     openai_api_key=openai_key)
+    embedding = OpenAIEmbeddings(
+        model="text-embedding-3-small",
+        openai_api_key=openai_key
+    )
+
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.28,
+        openai_api_key=openai_key
+    )
 
     # ------------------------------------------------------
     # Load markdown corpus into Chroma
@@ -37,18 +72,21 @@ def init_chatbot():
         if not txt:
             continue
         for i in range(0, len(txt), 1500):
-            docs.append({"content": txt[i:i+1500],
-                         "metadata": {"source": md.name}})
+            docs.append({
+                "content": txt[i:i+1500],
+                "metadata": {"source": md.name}
+            })
 
     vectordb = Chroma.from_texts(
         texts=[d["content"] for d in docs],
         embedding=embedding,
         metadatas=[d["metadata"] for d in docs]
     )
+
     retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
     # ------------------------------------------------------
-    # Retrieval + Router aware answer
+    # Retrieval + Router aware answer (CORE LOGIC)
     # ------------------------------------------------------
     def retrieve_and_answer(q: str):
         lens = route(q)
@@ -66,6 +104,9 @@ def init_chatbot():
         res = llm.invoke(prompt)
         return postprocess_answer(res.content)
 
+    # ------------------------------------------------------
+    # Gradio adapter (UI-specific glue)
+    # ------------------------------------------------------
     def answer_fn(msg, history):
         try:
             history = history + [{"role": "user", "content": msg}]
@@ -79,34 +120,28 @@ def init_chatbot():
     # CSS — restored design + scroll bug fix
     # ======================================================
     custom_css = """
-
     footer, .footer { display:none !important; }
-
     .chatbot-area {
         height: 360px !important;
         overflow: hidden;
     }
-
     .chatbot-area > .gr-chatbot {
         height:100% !important;
         overflow-y:auto !important;
         margin:0 !important;
         padding:0 !important;
     }
-
     .input-controls-row {
         margin-top:12px !important;
         display:flex;
         align-items:flex-end;
         gap:1rem;
     }
-
     .right-controls { width:180px; display:flex; flex-direction:column; gap:8px; }
     .wf-btn { background:#00C4A7 !important; color:white !important;
              border-radius:8px !important; font-weight:600 !important;
              height:38px; display:flex; align-items:center; justify-content:center; }
     .wf-btn:hover { background:#00A38A !important; }
-
     """
 
     theme = gr.themes.Default()
@@ -121,26 +156,29 @@ def init_chatbot():
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(label="WorkFriend Conversation",
-                             type="messages",
-                             elem_classes=["chatbot-area"])
+        chatbot = gr.Chatbot(
+            label="WorkFriend Conversation",
+            type="messages",
+            elem_classes=["chatbot-area"]
+        )
 
         add_feedback_below_chatbot()
 
         with gr.Row(elem_classes="input-controls-row"):
 
-            user_input = gr.Textbox(placeholder="Ask WAI...",
-                                    label="Your question:",
-                                    scale=4)
+            user_input = gr.Textbox(
+                placeholder="Ask WAI...",
+                label="Your question:",
+                scale=4
+            )
 
-            with gr.Column(elem_classes="right-controls", scale=0):
+            with gr.Column(elem_classes=["right-controls"], scale=0):
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
 
                 # ---------------------------------------
-                # Only change made — copy button replaced
+                # Copy button fallback (unchanged)
                 # ---------------------------------------
-                # OLD CODE: copy_btn = actions.get("copy")  # <─ working clipboard version
                 copy_btn = actions.get("copy") or add_copy_button(chatbot)
 
                 if "retry" in actions:
