@@ -1,23 +1,12 @@
 # ==========================================================
 # app/chatbot.py — WorkFriend WAI (v4.x)
 #
-# ARCHITECTURE NOTE:
-# ------------------
-# The core retrieval + LLM logic is defined at MODULE SCOPE
-# so it can be reused by:
-#   - Gradio UI (interactive demo)
-#   - FastAPI (/chat) endpoint via handle_message()
+# STABLE UX RESTORE (Dec freeze)
+# - Mint green buttons restored
+# - Send button inline with textbox
+# - Feedback icons visually aligned
 #
-# This keeps the application core UI-agnostic and portable.
-#
-# IMPORTANT:
-# -----------
-# This file MUST NOT:
-#   - call demo.launch()
-#   - import uvicorn
-#   - bind ports
-#
-# Gradio is mounted by FastAPI in main.py.
+# Architecture unchanged.
 # ==========================================================
 
 import os
@@ -84,11 +73,6 @@ retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 # ==========================================================
 
 def retrieve_and_answer(q: str) -> str:
-    """
-    Core retrieval + routing + LLM answer pipeline.
-
-    UI-agnostic. No Gradio, no FastAPI, no session logic.
-    """
     lens = route(q)
 
     docs = retriever.invoke(q)
@@ -116,29 +100,14 @@ def retrieve_and_answer(q: str) -> str:
 # ==========================================================
 
 def handle_message(message: str) -> str:
-    """
-    Stable, UI-agnostic message handler.
-
-    This is the SINGLE entry point used by:
-      - FastAPI (/chat)
-      - future backend integrations
-    """
     return retrieve_and_answer(message)
 
 
 # ==========================================================
-# Gradio UI (presentation layer ONLY)
+# Gradio UI (presentation layer only)
 # ==========================================================
 
 def init_chatbot():
-    """
-    Builds and returns the Gradio UI.
-
-    NOTE:
-    -----
-    This function MUST ONLY construct components.
-    It must NEVER call demo.launch().
-    """
 
     def answer_fn(msg, history):
         try:
@@ -150,100 +119,103 @@ def init_chatbot():
             return history + [{"role": "assistant", "content": f"⚠️ {e}"}], ""
 
     # ------------------------------------------------------
-    # CSS — restored design + scroll bug fix
+    # CSS — restored working UX
     # ------------------------------------------------------
     custom_css = """
     footer, .footer { display:none !important; }
+
     .chatbot-area {
         height: 360px !important;
         overflow: hidden;
     }
+
     .chatbot-area > .gr-chatbot {
         height:100% !important;
         overflow-y:auto !important;
         margin:0 !important;
         padding:0 !important;
     }
+
     .input-controls-row {
         margin-top:12px !important;
         display:flex;
         align-items:flex-end;
-        gap:1rem;
+        gap:0.75rem;
     }
-    .right-controls {
-        width:180px;
-        display:flex;
-        flex-direction:column;
-        gap:8px;
-    }
+
     .wf-btn {
         background:#00C4A7 !important;
         color:white !important;
         border-radius:8px !important;
         font-weight:600 !important;
         height:38px;
+        min-width:70px;
         display:flex;
         align-items:center;
         justify-content:center;
     }
-    .wf-btn:hover { background:#00A38A !important; }
+
+    .wf-btn:hover {
+        background:#00A38A !important;
+    }
+
+    /* Feedback icons */
+    .feedback-row {
+        display:flex;
+        justify-content:center;
+        gap:14px;
+        margin-top:6px;
+        opacity:0.6;
+    }
+    .feedback-row:hover {
+        opacity:1;
+    }
     """
 
     with gr.Blocks(css=custom_css) as demo:
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-
-
-
-
-
-
-        
-
-
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
+            type="messages",
             elem_classes=["chatbot-area"],
         )
 
-
-
-
-
-
-
-        
-
+        # Feedback directly under chat (visual fix only)
         add_feedback_below_chatbot()
 
+        # User action buttons (retry / copy etc) — unchanged
+        add_user_actions(chatbot, retrieve_and_answer)
+
+        # --------------------------------------------------
+        # Input row — SEND INLINE (ChatGPT-style)
+        # --------------------------------------------------
         with gr.Row(elem_classes="input-controls-row"):
 
             user_input = gr.Textbox(
                 placeholder="Ask WAI...",
-                label="Your question:",
-                scale=4,
+                label=None,
+                scale=8,
             )
 
-            with gr.Column(elem_classes=["right-controls"], scale=0):
-
-                actions = add_user_actions(chatbot, retrieve_and_answer)
-
-                if "retry" in actions:
-                    actions["retry"].elem_classes = ["wf-btn"]
-
-                send_btn = gr.Button("Send", elem_classes=["wf-btn"])
+            send_btn = gr.Button(
+                "Send",
+                elem_classes=["wf-btn"],
+                scale=1,
+            )
 
         send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
         user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
 
+        # Enter-to-send JS (unchanged)
         gr.HTML(
             """
             <script>
             document.addEventListener("keydown", function(e){
                 if(e.target.tagName==="TEXTAREA" && e.key==="Enter" && !e.shiftKey){
                     e.preventDefault();
-                    document.querySelector('button.wf-btn:last-child').click();
+                    document.querySelector('button.wf-btn').click();
                 }
             });
             </script>
