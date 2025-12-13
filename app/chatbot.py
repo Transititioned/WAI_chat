@@ -2,111 +2,129 @@
 # app/chatbot.py — WorkFriend WAI (v4.x)
 # Spinner + Router + Good UX + WakeMsg disabled + Scroll bug fix
 #
-# NOTE:
-# A thin wrapper function `handle_message()` is exposed so
-# this chatbot logic can be reused by:
+# ARCHITECTURE NOTE:
+# ------------------
+# The core retrieval + LLM logic is defined at MODULE SCOPE
+# so it can be reused by:
 #   - Gradio UI (interactive demo)
-#   - FastAPI endpoint (stable backend API)
+#   - FastAPI (/chat) endpoint via handle_message()
 #
-# This keeps the core retrieval + LLM logic UI-agnostic
-# and makes the backend portable off Hugging Face later.
+# This keeps the application core UI-agnostic and portable.
 # ==========================================================
 
 import gradio as gr
+import os
+from pathlib import Path
+
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-import os
-from pathlib import Path
 
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 from app.router import route, postprocess_answer
 
 
-# ----------------------------------------------------------
-# Core message handler (UI-agnostic wrapper)
-# ----------------------------------------------------------
+# ==========================================================
+# One-time initialisation (shared by UI + API)
+# ==========================================================
+
+ARTICLES_DIR = Path("content/articles")
+if not ARTICLES_DIR.exists():
+    ARTICLES_DIR = Path(".")
+
+openai_key = os.getenv("OPENAI_API_KEY")
+
+embedding = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+    openai_api_key=openai_key
+)
+
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    temperature=0.28,
+    openai_api_key=openai_key
+)
+
+# Load markdown corpus into Chroma
+docs = []
+for md in ARTICLES_DIR.glob("*.md"):
+    txt = md.read_text(encoding="utf-8").strip()
+    if not txt:
+        continue
+    for i in range(0, len(txt), 1500):
+        docs.append({
+            "content": txt[i:i + 1500],
+            "metadata": {"source": md.name}
+        })
+
+vectordb = Chroma.from_texts(
+    texts=[d["content"] for d in docs],
+    embedding=embedding,
+    metadatas=[d["metadata"] for d in docs]
+)
+
+retriever = vectordb.as_retriever(search_kwargs={"k": 3})
+
+
+# ==========================================================
+# Core retrieval + answer pipeline (APPLICATION CORE)
+# ==========================================================
+
+def retrieve_and_answer(q: str) -> str:
+    """
+    Core retrieval + routing + LLM answer pipeline.
+
+    This function:
+      - routes the question
+      - retrieves relevant context
+      - builds the prompt
+      - calls the LLM
+      - post-processes the answer
+
+    It contains NO UI or framework-specific logic.
+    """
+    lens = route(q)
+
+    docs = retriever.invoke(q)
+    context = "\n\n".join([d.page_content for d in docs])
+
+    prompt = ChatPromptTemplate.from_template(
+        "{system}\n\nContext:\n{context}\n\n"
+        "Respond using:\n"
+        "1. **Answer**\n"
+        "2. **Why it matters**\n"
+        "3. **Plays/Examples**\n\n"
+        "User: {q}"
+    ).format(system=lens, context=context, q=q)
+
+    res = llm.invoke(prompt)
+    return postprocess_answer(res.content)
+
+
+# ==========================================================
+# Public message handler (API + UI entry point)
+# ==========================================================
+
 def handle_message(message: str) -> str:
     """
-    Core message handler used by both:
-      - Gradio UI callbacks
-      - FastAPI /chat endpoint
+    Stable, UI-agnostic message handler.
 
-    This wrapper deliberately contains NO Gradio-specific
-    concepts (history, UI state, components).
+    This is the SINGLE entry point used by:
+      - FastAPI (/chat)
+      - any future backend integrations
 
-    It simply delegates to the retrieval + answer pipeline
-    defined inside init_chatbot().
+    Keeping this thin makes the architecture portable
+    and avoids coupling APIs to Gradio internals.
     """
     return retrieve_and_answer(message)
 
 
+# ==========================================================
+# Gradio UI (presentation layer)
+# ==========================================================
+
 def init_chatbot():
 
-    # ------------------------------------------------------
-    # Model + Embeddings
-    # ------------------------------------------------------
-    ARTICLES_DIR = Path("content/articles")
-    if not ARTICLES_DIR.exists():
-        ARTICLES_DIR = Path(".")
-
-    openai_key = os.getenv("OPENAI_API_KEY")
-
-    embedding = OpenAIEmbeddings(
-        model="text-embedding-3-small",
-        openai_api_key=openai_key
-    )
-
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.28,
-        openai_api_key=openai_key
-    )
-
-    # ------------------------------------------------------
-    # Load markdown corpus into Chroma
-    # ------------------------------------------------------
-    docs = []
-    for md in ARTICLES_DIR.glob("*.md"):
-        txt = md.read_text(encoding="utf-8").strip()
-        if not txt:
-            continue
-        for i in range(0, len(txt), 1500):
-            docs.append({
-                "content": txt[i:i+1500],
-                "metadata": {"source": md.name}
-            })
-
-    vectordb = Chroma.from_texts(
-        texts=[d["content"] for d in docs],
-        embedding=embedding,
-        metadatas=[d["metadata"] for d in docs]
-    )
-
-    retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-
-    # ------------------------------------------------------
-    # Retrieval + Router aware answer (CORE LOGIC)
-    # ------------------------------------------------------
-    def retrieve_and_answer(q: str):
-        lens = route(q)
-
-        docs = retriever.invoke(q)
-        context = "\n\n".join([d.page_content for d in docs])
-
-        prompt = ChatPromptTemplate.from_template(
-            "{system}\n\nContext:\n{context}\n\n"
-            "Respond using:\n"
-            "1. **Answer**\n2. **Why it matters**\n3. **Plays/Examples**\n\n"
-            "User: {q}"
-        ).format(system=lens, context=context, q=q)
-
-        res = llm.invoke(prompt)
-        return postprocess_answer(res.content)
-
-    # ------------------------------------------------------
-    # Gradio adapter (UI-specific glue)
-    # ------------------------------------------------------
     def answer_fn(msg, history):
         try:
             history = history + [{"role": "user", "content": msg}]
@@ -116,9 +134,9 @@ def init_chatbot():
         except Exception as e:
             return history + [{"role": "assistant", "content": f"⚠️ {e}"}], ""
 
-    # ======================================================
+    # ------------------------------------------------------
     # CSS — restored design + scroll bug fix
-    # ======================================================
+    # ------------------------------------------------------
     custom_css = """
     footer, .footer { display:none !important; }
     .chatbot-area {
@@ -148,12 +166,6 @@ def init_chatbot():
 
     with gr.Blocks(theme=theme, css=custom_css) as demo:
 
-        # Wake message kept for fallback but disabled
-        """
-        gr.Markdown("### 💤 WAI is waking up… 5–10 sec first use",
-                    elem_id="wai_wakeup")
-        """
-
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
         chatbot = gr.Chatbot(
@@ -176,9 +188,6 @@ def init_chatbot():
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
 
-                # ---------------------------------------
-                # Copy button fallback (unchanged)
-                # ---------------------------------------
                 copy_btn = actions.get("copy") or add_copy_button(chatbot)
 
                 if "retry" in actions:
