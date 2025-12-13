@@ -23,7 +23,6 @@
 import os
 from pathlib import Path
 import gradio as gr
-from gradio.themes import Default, colors
 
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -31,17 +30,6 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from app.chatbot_actions import add_user_actions, add_feedback_below_chatbot
 from app.router import route, postprocess_answer
-
-
-# ==========================================================
-# Gradio Theme — Mint Green (Gradio 6 compliant)
-# ==========================================================
-
-WAI_THEME = Default(
-    primary_hue=colors.emerald,
-    secondary_hue=colors.gray,
-    neutral_hue=colors.gray,
-)
 
 
 # ==========================================================
@@ -164,7 +152,6 @@ def init_chatbot():
     # ------------------------------------------------------
     # CSS — known-good layout + scroll fix
     # ------------------------------------------------------
-
     custom_css = """
     footer, .footer { display:none !important; }
 
@@ -172,26 +159,6 @@ def init_chatbot():
         height: 360px !important;
         overflow: hidden;
     }
-
-
-    /* FIX: Gradio 6 feedback SVGs are stroke-based, not fill-based */
-
-        button[aria-label="Like"] svg,
-        button[aria-label="Dislike"] svg {
-        stroke: #666 !important;
-        stroke-width: 2 !important;
-        opacity: 1 !important;
-    }
-
-        button[aria-label="Like"]:hover svg,
-        button[aria-label="Dislike"]:hover svg {
-        stroke: #00C4A7 !important;
-    }
-
-
-
-
-
 
     .chatbot-area > .gr-chatbot {
         height:100% !important;
@@ -214,35 +181,31 @@ def init_chatbot():
         gap:8px;
     }
 
-    :root {
-        --button-primary-background: #00C4A7 !important;
-        --button-primary-background-hover: #00A38A !important;
-        --button-primary-text-color: #ffffff !important;
+    .wf-btn {
+        background:#00C4A7 !important;
+        color:white !important;
+        border-radius:8px !important;
+        font-weight:600 !important;
+        height:38px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
     }
 
-    /* =====================================================
-       FIX: SVG up/down vote icons not visible (HF + Gradio 6)
-       ===================================================== */
-
-    .wf-feedback-btn svg,
-    #wf-feedback-row svg {
-        fill: #555 !important;
-        opacity: 1 !important;
-    }
-
-    .wf-feedback-btn:hover svg,
-    #wf-feedback-row button:hover svg {
-        fill: #00C4A7 !important;
+    .wf-btn:hover {
+        background:#00A38A !important;
     }
     """
 
-    with gr.Blocks(theme=WAI_THEME, css=custom_css) as demo:
+    with gr.Blocks(css=custom_css) as demo:
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
+        # ✅ ONLY FIX: enable Gradio 6 feedback handling
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             elem_classes=["chatbot-area"],
+            feedback=True,
         )
 
         add_feedback_below_chatbot()
@@ -259,7 +222,10 @@ def init_chatbot():
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
 
-                send_btn = gr.Button("Send")
+                if "retry" in actions:
+                    actions["retry"].elem_classes = ["wf-btn"]
+
+                send_btn = gr.Button("Send", elem_classes=["wf-btn"])
 
         send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
         user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
@@ -270,7 +236,7 @@ def init_chatbot():
             document.addEventListener("keydown", function(e){
                 if(e.target.tagName==="TEXTAREA" && e.key==="Enter" && !e.shiftKey){
                     e.preventDefault();
-                    document.querySelector('button').click();
+                    document.querySelector('button.wf-btn:last-child').click();
                 }
             });
             </script>
