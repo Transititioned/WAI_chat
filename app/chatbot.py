@@ -1,12 +1,13 @@
 # ==========================================================
-# app/chatbot.py — WorkFriend WAI (v4.x)
+# app/chatbot.py — WorkFriend WAI (Dec stable)
 #
-# STABLE UX RESTORE (Dec freeze)
-# - Mint green buttons restored
+# GOALS:
+# - Restore mint green buttons
 # - Send button inline with textbox
-# - Feedback icons visually aligned
-#
-# Architecture unchanged.
+# - Compact Retry / Copy buttons
+# - No demo.launch()
+# - No uvicorn
+# - No FastAPI coupling
 # ==========================================================
 
 import os
@@ -33,13 +34,13 @@ openai_key = os.getenv("OPENAI_API_KEY")
 
 embedding = OpenAIEmbeddings(
     model="text-embedding-3-small",
-    openai_api_key=openai_key
+    openai_api_key=openai_key,
 )
 
 llm = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0.28,
-    openai_api_key=openai_key
+    openai_api_key=openai_key,
 )
 
 # ----------------------------------------------------------
@@ -54,7 +55,7 @@ for md in ARTICLES_DIR.glob("*.md"):
     for i in range(0, len(txt), 1500):
         docs.append(
             {
-                "content": txt[i:i + 1500],
+                "content": txt[i : i + 1500],
                 "metadata": {"source": md.name},
             }
         )
@@ -69,7 +70,7 @@ retriever = vectordb.as_retriever(search_kwargs={"k": 3})
 
 
 # ==========================================================
-# Core retrieval + answer pipeline (APPLICATION CORE)
+# Core retrieval + answer pipeline
 # ==========================================================
 
 def retrieve_and_answer(q: str) -> str:
@@ -85,18 +86,14 @@ def retrieve_and_answer(q: str) -> str:
         "2. **Why it matters**\n"
         "3. **Plays/Examples**\n\n"
         "User: {q}"
-    ).format(
-        system=lens,
-        context=context,
-        q=q,
-    )
+    ).format(system=lens, context=context, q=q)
 
     res = llm.invoke(prompt)
     return postprocess_answer(res.content)
 
 
 # ==========================================================
-# Public message handler (API + UI entry point)
+# Public handler (used by FastAPI)
 # ==========================================================
 
 def handle_message(message: str) -> str:
@@ -104,7 +101,7 @@ def handle_message(message: str) -> str:
 
 
 # ==========================================================
-# Gradio UI (presentation layer only)
+# Gradio UI
 # ==========================================================
 
 def init_chatbot():
@@ -119,11 +116,12 @@ def init_chatbot():
             return history + [{"role": "assistant", "content": f"⚠️ {e}"}], ""
 
     # ------------------------------------------------------
-    # CSS — restored working UX
+    # CSS — Dec stable UX
     # ------------------------------------------------------
     custom_css = """
     footer, .footer { display:none !important; }
 
+    /* Chat area */
     .chatbot-area {
         height: 360px !important;
         overflow: hidden;
@@ -136,19 +134,21 @@ def init_chatbot():
         padding:0 !important;
     }
 
+    /* Input row */
     .input-controls-row {
         margin-top:12px !important;
         display:flex;
-        align-items:flex-end;
         gap:0.75rem;
+        align-items:stretch !important;
     }
 
+    /* Mint buttons */
     .wf-btn {
         background:#00C4A7 !important;
         color:white !important;
         border-radius:8px !important;
         font-weight:600 !important;
-        height:38px;
+        height:38px !important;
         min-width:70px;
         display:flex;
         align-items:center;
@@ -159,18 +159,31 @@ def init_chatbot():
         background:#00A38A !important;
     }
 
-    /* Feedback icons */
-    .feedback-row {
-        display:flex;
-        justify-content:center;
-        gap:14px;
-        margin-top:6px;
-        opacity:0.6;
+    /* Action buttons row (Retry / Copy) */
+    .wf-actions-row {
+        display:flex !important;
+        justify-content:flex-end !important;
+        gap:10px !important;
+        margin-top:8px !important;
+        margin-bottom:6px !important;
     }
 
-    .feedback-row:hover {
-        opacity:1;
+    .wf-actions-row button {
+        background:#00C4A7 !important;
+        color:white !important;
+        border-radius:8px !important;
+        font-weight:600 !important;
+        height:34px !important;
+        padding:0 14px !important;
+        width:auto !important;
     }
+
+    .wf-actions-row button:hover {
+        background:#00A38A !important;
+    }
+
+    /* Prevent Gradio full-width buttons */
+    button { width:auto !important; }
     """
 
     with gr.Blocks(css=custom_css) as demo:
@@ -182,14 +195,15 @@ def init_chatbot():
             elem_classes=["chatbot-area"],
         )
 
-        # Feedback directly under chat
+        # Feedback icons (unchanged)
         add_feedback_below_chatbot()
 
-        # Action buttons (retry / copy)
-        add_user_actions(chatbot, retrieve_and_answer)
+        # Action buttons (Retry / Copy)
+        with gr.Row(elem_classes=["wf-actions-row"]):
+            add_user_actions(chatbot, retrieve_and_answer)
 
         # --------------------------------------------------
-        # Input row — SEND INLINE
+        # Input row — Send inline
         # --------------------------------------------------
         with gr.Row(elem_classes="input-controls-row"):
 
@@ -208,14 +222,14 @@ def init_chatbot():
         send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
         user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
 
-        # Enter-to-send behaviour
+        # Enter-to-send
         gr.HTML(
             """
             <script>
             document.addEventListener("keydown", function(e){
                 if(e.target.tagName==="TEXTAREA" && e.key==="Enter" && !e.shiftKey){
                     e.preventDefault();
-                    document.querySelector('button.wf-btn').click();
+                    document.querySelector('.wf-btn').click();
                 }
             });
             </script>
