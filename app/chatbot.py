@@ -167,56 +167,29 @@ def init_chatbot():
         margin-top:6px;
         opacity:0.6;
     }
+
     .feedback-row:hover {
         opacity:1;
     }
     """
 
-
-
-    
-
-
-
-
-
-
-
-
-        
-
-     with gr.Blocks(css=custom_css) as demo:
+    with gr.Blocks(css=custom_css) as demo:
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
-         
+
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             elem_classes=["chatbot-area"],
         )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-        # Feedback directly under chat (visual fix only)
+        # Feedback directly under chat
         add_feedback_below_chatbot()
 
-        # User action buttons (retry / copy etc) — unchanged
+        # Action buttons (retry / copy)
         add_user_actions(chatbot, retrieve_and_answer)
 
         # --------------------------------------------------
-        # Input row — SEND INLINE (ChatGPT-style)
+        # Input row — SEND INLINE
         # --------------------------------------------------
         with gr.Row(elem_classes="input-controls-row"):
 
@@ -235,7 +208,7 @@ def init_chatbot():
         send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
         user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
 
-        # Enter-to-send JS (unchanged)
+        # Enter-to-send behaviour
         gr.HTML(
             """
             <script>
