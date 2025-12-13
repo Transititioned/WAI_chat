@@ -1,12 +1,11 @@
-setuptools
-wheel
-tiktoken
-gradio
-chromadb
-langchain-core
-langchain-community
-langchain-openai
-openai>=1.24.0,<2.0.0
+fastapi>=0.110
+uvicorn>=0.23
+gradio>=4.40
 
-fastapi
-uvicorn
+pydantic>=2.0
+langchain
+langchain-openai
+langchain-community
+chromadb
+tiktoken
+openai
