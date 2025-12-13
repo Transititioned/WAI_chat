@@ -187,7 +187,7 @@ def init_chatbot():
 
      with gr.Blocks(css=custom_css) as demo:
 
-         gr.Markdown("### 💬 WorkFriend Chatbot")
+        gr.Markdown("### 💬 WorkFriend Chatbot")
          
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
