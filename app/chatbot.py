@@ -193,11 +193,27 @@ def init_chatbot():
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
+
+
+
+
+
+
+        
+
+
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
-            type="messages",
             elem_classes=["chatbot-area"],
         )
+
+
+
+
+
+
+
+        
 
         add_feedback_below_chatbot()
 
