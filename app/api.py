@@ -28,4 +28,4 @@ async def chat(req: ChatRequest):
     - Calls the core message handler
     """
     reply = handle_message(req.message)
-    return {"reply": reply}
+    return {"reply": reply} 
