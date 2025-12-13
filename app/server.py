@@ -1,51 +1,29 @@
-# ==========================================================
-# app/server.py — ASGI composition for Hugging Face
-#
-# This is the SINGLE ASGI entrypoint.
-# Hugging Face will auto-detect `app`.
-# ==========================================================
-
 from fastapi import FastAPI
 from gradio.routes import mount_gradio_app
+
+print("🟢 [DEBUG] server.py imported")
 
 from app.bootstrap import bootstrap
 from app.api import router as api_router
 from app.chatbot import init_chatbot
 
-
-# ----------------------------------------------------------
-# FastAPI app
-# ----------------------------------------------------------
+print("🟢 [DEBUG] imports resolved")
 
 app = FastAPI(title="WorkFriend WAI")
-
-
-# ----------------------------------------------------------
-# Startup lifecycle (replaces main.py execution)
-# ----------------------------------------------------------
+print("🟢 [DEBUG] FastAPI app created:", app)
 
 @app.on_event("startup")
-def on_startup():
-    """
-    One-time application bootstrap:
-    - loaders
-    - config
-    - vectorstore
-    - LLM warm check
-    """
+async def startup():
+    print("🟢 [DEBUG] FastAPI startup event fired")
     bootstrap()
 
-
-# ----------------------------------------------------------
-# API routes
-# ----------------------------------------------------------
-
+print("🟢 [DEBUG] registering API router")
 app.include_router(api_router)
 
-
-# ----------------------------------------------------------
-# Gradio UI (mounted at /)
-# ----------------------------------------------------------
-
+print("🟢 [DEBUG] building Gradio UI")
 demo = init_chatbot()
+print("🟢 [DEBUG] demo returned:", demo)
+
+print("🟢 [DEBUG] mounting Gradio at /")
 mount_gradio_app(app, demo, path="/")
+print("🟢 [DEBUG] mount_gradio_app completed")
