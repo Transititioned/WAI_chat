@@ -1,3 +1,21 @@
+from langchain_openai import ChatOpenAI
+from langchain.schema import HumanMessage
+import os
+
+llm = ChatOpenAI(
+    model="gpt-4.1-mini",
+    temperature=0.3,
+    openai_api_key=os.environ.get("OPENAI_API_KEY"),
+)
+
+
+def call_llm(prompt: str) -> str:
+    response = llm.invoke([
+        HumanMessage(content=prompt)
+    ])
+    return response.content.strip()
+
+
 def rehumanize(
     text: str,
     structure: str,      # "get_to_point" | "narrative" | "options"
