@@ -6,7 +6,7 @@ from langchain_core.messages import HumanMessage
 # Semantic imports
 from re_humanizer.system_intent import SYSTEM_INTENT
 from re_humanizer.structures import STRUCTURES
-#from re_humanizer.tones import TONE_MAP
+from re_humanizer.tones import TONE_MAP
 
 
 # ----------------------------
