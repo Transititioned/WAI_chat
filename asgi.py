@@ -8,9 +8,13 @@ there are also risks. Not this, not that, but rather a careful approach that bal
 innovation with safety.
 """
 
-print("=== REHUMANIZER TEST OUTPUT ===")
-print(rehumanize(test_text, "get_to_point", "professional"))
-print("=== END TEST ===")
+import logging
+
+logging.warning("=== REHUMANIZER TEST OUTPUT ===")
+logging.warning(
+    rehumanize(test_text, "get_to_point", "professional")
+)
+logging.warning("=== END TEST ===")
 
 
 #test toogle you can turn on with an env variable  
