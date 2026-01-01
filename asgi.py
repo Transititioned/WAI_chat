@@ -1,5 +1,3 @@
-from app.server import app
-
 # TEMP TEST HOOK — REMOVE AFTER TESTING
 from re_humanizer.rehumanizer import rehumanize
 
@@ -12,3 +10,8 @@ innovation with safety.
 print("=== REHUMANIZER TEST OUTPUT ===")
 print(rehumanize(test_text, "get_to_point", "professional"))
 print("=== END TEST ===")
+
+
+
+from app.server import app
+
