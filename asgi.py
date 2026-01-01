@@ -14,9 +14,9 @@ print("=== END TEST ===")
 
 
 #test toogle you can turn on with an env variable  
-if os.environ.get("REHUMANIZER_TEST") == "true":
-    print("=== REHUMANIZER TEST OUTPUT ===")
-    print(rehumanize(test_text, "get_to_point", "professional"))
-    print("=== END TEST ===")
+#if os.environ.get("REHUMANIZER_TEST") == "true":
+    #print("=== REHUMANIZER TEST OUTPUT ===")
+    #print(rehumanize(test_text, "get_to_point", "professional"))
+    #print("=== END TEST ===")
     
 
