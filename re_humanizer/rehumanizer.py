@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage
+from langchain_core.messages import HumanMessage
 import os
 
 llm = ChatOpenAI(
