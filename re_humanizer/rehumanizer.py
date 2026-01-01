@@ -3,10 +3,10 @@ import re
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
-# Semantic imports (to be implemented next)
-from re_humanizer.prompts.system_intent import SYSTEM_INTENT
-from re_humanizer.prompts.structures import STRUCTURES
-from re_humanizer.prompts.tones import TONE_MAP
+# Semantic imports
+from re_humanizer.system_intent import SYSTEM_INTENT
+from re_humanizer.structures import STRUCTURES
+from re_humanizer.tones import TONE_MAP
 
 
 # ----------------------------
