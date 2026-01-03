@@ -1,5 +1,4 @@
 # app/server.py
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from gradio.routes import mount_gradio_app
@@ -11,9 +10,7 @@ from app.chatbot import init_chatbot
 # 1. Initialize FastAPI
 app = FastAPI(title="WorkFriend WAI")
 
-# 2. Add CORS Middleware 
-# This is critical for mobile browsers to successfully handshake 
-# with the HF subdomain from your Ghost site.
+# 2. Add CORS Middleware (Critical for Cross-Domain Mobile Access)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,6 +18,15 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
+
+# ---------------------------
+# Health Check (The Fix)
+# ---------------------------
+# Hugging Face's mobile proxy pings "/" to check if the app is ready. 
+# Providing this JSON response prevents "Health Check" 404s.
+@app.get("/")
+def health_check():
+    return {"status": "ok", "message": "Workfriend is online"}
 
 # ---------------------------
 # Startup lifecycle
@@ -37,9 +43,7 @@ app.include_router(api_router)
 # ---------------------------
 # Gradio UI
 # ---------------------------
-# 3. Initialize the chatbot
+# 3. Initialize and mount at /chatbot
+# This separates the UI from the health check for 100% routing clarity.
 demo = init_chatbot()
-
-# 4. Mount Gradio to "/" 
-# Mounting to root is the most stable pattern for mobile routing.
-app = mount_gradio_app(app, demo, path="/")
+app = mount_gradio_app(app, demo, path="/chatbot")
