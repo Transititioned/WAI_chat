@@ -88,23 +88,20 @@ def init_chatbot():
         <style>
             footer, .footer { display: none !important; }
 
-            /* Kill the full-viewport stretch */
+            /* THE ROOT FIX: gradio-app has flex-grow:1 injected by the page,
+               which causes it to expand to 100vh and push controls below fold.
+               Removing flex-grow stops the expansion. */
+            gradio-app {
+                flex-grow: 0 !important;
+                height: auto !important;
+            }
+
+            /* Belt-and-braces: also stop the inner containers stretching */
             .gradio-container,
             .gradio-container > .main,
             .gradio-container > .main > .wrap {
                 min-height: unset !important;
                 height: auto !important;
-            }
-
-            /* Target the chatbot scroll container directly */
-            .chatbot-wrap,
-            .chatbot-wrap > div,
-            div[data-testid="chatbot"],
-            div[data-testid="chatbot"] > div {
-                max-height: 320px !important;
-                min-height: 120px !important;
-                height: 320px !important;
-                overflow-y: auto !important;
             }
 
             /* Brand buttons */
@@ -123,26 +120,21 @@ def init_chatbot():
         </style>
 
         <script>
-        // JS fallback: poll until the chatbot element exists, then cap its height.
-        // This runs after Gradio's own JS has finished rendering.
+        // Also fix via JS since the inline style on gradio-app may override CSS
         (function() {
-            function capChatbot() {
-                // Gradio 4.x wraps the chatbot in a div with role="log"
-                var el = document.querySelector('div[role="log"]');
-                if (el) {
-                    el.style.setProperty('max-height', '320px', 'important');
-                    el.style.setProperty('height', '320px', 'important');
-                    el.style.setProperty('overflow-y', 'auto', 'important');
-                    el.style.setProperty('min-height', '120px', 'important');
+            function fixLayout() {
+                var app = document.querySelector('gradio-app');
+                if (app) {
+                    app.style.setProperty('flex-grow', '0', 'important');
+                    app.style.setProperty('height', 'auto', 'important');
                 } else {
-                    setTimeout(capChatbot, 300);
+                    setTimeout(fixLayout, 100);
                 }
             }
-            // Run on load and after a short delay to catch Gradio's late renders
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', capChatbot);
+                document.addEventListener('DOMContentLoaded', fixLayout);
             } else {
-                setTimeout(capChatbot, 500);
+                fixLayout();
             }
         })();
         </script>
