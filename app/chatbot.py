@@ -15,29 +15,22 @@ from app.router import route, postprocess_answer
 
 
 # ==========================================================
-# Monkey-patch gradio_client bug: "argument of type 'bool' is not iterable"
-# Root cause: get_type() in gradio_client/utils.py does `if "const" in schema`
-# but schema can be a bool (True/False) when additionalProperties=True/False.
-# Fix: guard against non-dict schema before the `in` check.
+# Monkey-patch gradio_client bug
 # ==========================================================
 try:
     import gradio_client.utils as _gcu
-
     _original_get_type = _gcu.get_type
-
     def _safe_get_type(schema):
         if not isinstance(schema, dict):
             return "any"
         return _original_get_type(schema)
-
     _gcu.get_type = _safe_get_type
-    print("[chatbot] gradio_client.utils.get_type patched OK")
 except Exception as e:
     print(f"[chatbot] gradio_client patch failed (non-fatal): {e}")
 
 
 # ==========================================================
-# One-time initialisation (shared by UI + API)
+# One-time initialisation
 # ==========================================================
 
 ARTICLES_DIR = Path("content/articles")
@@ -109,22 +102,6 @@ def init_chatbot():
         gr.HTML("""
         <style>
             footer, .footer { display: none !important; }
-
-            /* Stop the gradio-app web component from flex-growing to 100vh */
-            gradio-app {
-                flex-grow: 0 !important;
-                height: auto !important;
-                min-height: unset !important;
-            }
-
-            .gradio-container,
-            .gradio-container > .main,
-            .gradio-container > .main > .wrap {
-                min-height: unset !important;
-                height: auto !important;
-            }
-
-            /* Brand buttons */
             .wf-btn {
                 background: #00C4A7 !important;
                 color: white !important;
@@ -140,17 +117,41 @@ def init_chatbot():
         </style>
 
         <script>
-        // Override flex-grow on gradio-app which is set as an inline style
-        // by the page HTML and therefore beats CSS rules.
-        (function fix() {
-            var app = document.querySelector('gradio-app');
-            if (app) {
-                app.style.flexGrow = '0';
-                app.style.height = 'auto';
-                app.style.minHeight = 'unset';
-            } else {
-                setTimeout(fix, 50);
+        // The gradio-app element has flex-grow:1 set as an inline style in the
+        // page HTML. Our <style> block is inside the shadow DOM and can't reach
+        // it. JS inside gr.HTML runs in the main document context, so we CAN
+        // reach it — but Gradio's own JS may set it AFTER us.
+        // Solution: MutationObserver watches the element's style attribute and
+        // immediately resets flex-grow whenever anything changes it.
+        (function() {
+            function lockFlexGrow(el) {
+                // Set it once immediately
+                el.style.setProperty('flex-grow', '0', 'important');
+                el.style.setProperty('height', 'auto', 'important');
+                el.style.setProperty('min-height', 'unset', 'important');
+
+                // Then watch for any future changes and undo them
+                var observer = new MutationObserver(function() {
+                    if (el.style.flexGrow !== '0') {
+                        el.style.setProperty('flex-grow', '0', 'important');
+                    }
+                    if (el.style.height !== 'auto') {
+                        el.style.setProperty('height', 'auto', 'important');
+                    }
+                });
+                observer.observe(el, { attributes: true, attributeFilter: ['style'] });
             }
+
+            function findAndLock() {
+                var app = document.querySelector('gradio-app');
+                if (app) {
+                    lockFlexGrow(app);
+                } else {
+                    setTimeout(findAndLock, 30);
+                }
+            }
+
+            findAndLock();
         })();
         </script>
         """)
