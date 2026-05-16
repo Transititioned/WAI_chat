@@ -15,6 +15,28 @@ from app.router import route, postprocess_answer
 
 
 # ==========================================================
+# Monkey-patch gradio_client bug: "argument of type 'bool' is not iterable"
+# Root cause: get_type() in gradio_client/utils.py does `if "const" in schema`
+# but schema can be a bool (True/False) when additionalProperties=True/False.
+# Fix: guard against non-dict schema before the `in` check.
+# ==========================================================
+try:
+    import gradio_client.utils as _gcu
+
+    _original_get_type = _gcu.get_type
+
+    def _safe_get_type(schema):
+        if not isinstance(schema, dict):
+            return "any"
+        return _original_get_type(schema)
+
+    _gcu.get_type = _safe_get_type
+    print("[chatbot] gradio_client.utils.get_type patched OK")
+except Exception as e:
+    print(f"[chatbot] gradio_client patch failed (non-fatal): {e}")
+
+
+# ==========================================================
 # One-time initialisation (shared by UI + API)
 # ==========================================================
 
@@ -88,15 +110,13 @@ def init_chatbot():
         <style>
             footer, .footer { display: none !important; }
 
-            /* THE ROOT FIX: gradio-app has flex-grow:1 injected by the page,
-               which causes it to expand to 100vh and push controls below fold.
-               Removing flex-grow stops the expansion. */
+            /* Stop the gradio-app web component from flex-growing to 100vh */
             gradio-app {
                 flex-grow: 0 !important;
                 height: auto !important;
+                min-height: unset !important;
             }
 
-            /* Belt-and-braces: also stop the inner containers stretching */
             .gradio-container,
             .gradio-container > .main,
             .gradio-container > .main > .wrap {
@@ -120,21 +140,16 @@ def init_chatbot():
         </style>
 
         <script>
-        // Also fix via JS since the inline style on gradio-app may override CSS
-        (function() {
-            function fixLayout() {
-                var app = document.querySelector('gradio-app');
-                if (app) {
-                    app.style.setProperty('flex-grow', '0', 'important');
-                    app.style.setProperty('height', 'auto', 'important');
-                } else {
-                    setTimeout(fixLayout, 100);
-                }
-            }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', fixLayout);
+        // Override flex-grow on gradio-app which is set as an inline style
+        // by the page HTML and therefore beats CSS rules.
+        (function fix() {
+            var app = document.querySelector('gradio-app');
+            if (app) {
+                app.style.flexGrow = '0';
+                app.style.height = 'auto';
+                app.style.minHeight = 'unset';
             } else {
-                fixLayout();
+                setTimeout(fix, 50);
             }
         })();
         </script>
