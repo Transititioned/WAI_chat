@@ -99,37 +99,53 @@ def init_chatbot():
         history = history + [{"role": "assistant", "content": reply}]
         return history, ""
 
-    # css= on gr.Blocks is the correct way to inject styles in Gradio 4.x —
-    # it gets injected into the page <head>, not the shadow DOM like gr.HTML does.
+    # Proven CSS pattern from CaveBot 0.3.9 lessons:
+    # Universal padding/margin/gap reset removes invisible spacing that
+    # Gradio injects via .block, .wrap, .svelte-* parent containers —
+    # this is what actually causes the below-the-fold issue.
+    # Combined with a fixed chatbot height + overflow-y: auto for scrolling.
     custom_css = """
         footer, .footer { display: none !important; }
 
-        /* Responsive chatbot: 55vh so controls always visible at any resolution */
-        div[data-testid="chatbot"] {
-            height: 55vh !important;
-            max-height: 55vh !important;
-            min-height: 200px !important;
+        /* Universal reset — kills all invisible Gradio padding/gaps */
+        .gradio-container *,
+        .gradio-container,
+        .block,
+        .wrap,
+        .gradio-app,
+        .svelte-1ipelgc {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            gap: 0 !important;
         }
 
-        div[data-testid="chatbot"] > div[role="log"] {
-            height: 100% !important;
-            max-height: 100% !important;
+        /* Chatbot fixed height with scroll */
+        .chatbot-area {
+            max-height: 300px !important;
             overflow-y: auto !important;
+        }
+
+        /* Restore some breathing room on the input row */
+        .input-row {
+            margin-top: 8px !important;
+            padding-top: 4px !important;
         }
 
         /* Brand buttons */
         .wf-btn {
-            background: #00C4A7 !important;
+            background-color: #00C4A7 !important;
             color: white !important;
             border-radius: 8px !important;
             font-weight: 600 !important;
-            height: 38px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
             border: none !important;
+            transition: 0.2s ease-in-out !important;
         }
-        .wf-btn:hover { background: #00A38A !important; }
+        .wf-btn:hover {
+            background-color: #00A38A !important;
+            transform: translateY(-1px);
+        }
     """
 
     with gr.Blocks(css=custom_css) as demo:
@@ -138,10 +154,12 @@ def init_chatbot():
 
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
-            height=500,  # fallback — CSS overrides with 55vh
+            height=300,
+            elem_classes=["chatbot-area"],
         )
 
-        with gr.Row():
+        with gr.Row(elem_classes=["input-row"], equal_height=True):
+
             user_input = gr.Textbox(
                 placeholder="Ask WAI...",
                 label="Your question:",
@@ -149,7 +167,7 @@ def init_chatbot():
                 scale=4,
             )
 
-            with gr.Column(scale=0, min_width=160):
+            with gr.Column(scale=1, min_width=160):
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
 
