@@ -3,7 +3,7 @@
 # ==========================================================
 
 import os
-from pathlib import Path
+from pathlib import Path 
 import gradio as gr
 
 from langchain_community.vectorstores import Chroma
