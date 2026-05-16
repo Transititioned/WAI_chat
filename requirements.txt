@@ -1,5 +1,7 @@
-fastapi>=0.110
+fastapi==0.111.0
 uvicorn>=0.23
+starlette==0.37.2
+jinja2==3.1.4
 gradio==4.36.1
 huggingface_hub==0.23.4
 
