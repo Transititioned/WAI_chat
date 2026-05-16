@@ -3,7 +3,7 @@
 # ==========================================================
 
 import os
-from pathlib import Path 
+from pathlib import Path
 import gradio as gr
 
 from langchain_community.vectorstores import Chroma
@@ -19,12 +19,14 @@ from app.router import route, postprocess_answer
 # ==========================================================
 try:
     import gradio_client.utils as _gcu
-    _original_get_type = _gcu.get_type
-    def _safe_get_type(schema):
+    _orig = _gcu._json_schema_to_python_type
+
+    def _safe(schema, defs=None):
         if not isinstance(schema, dict):
             return "any"
-        return _original_get_type(schema)
-    _gcu.get_type = _safe_get_type
+        return _orig(schema, defs)
+
+    _gcu._json_schema_to_python_type = _safe
 except Exception as e:
     print(f"[chatbot] gradio_client patch failed (non-fatal): {e}")
 
@@ -102,6 +104,24 @@ def init_chatbot():
         gr.HTML("""
         <style>
             footer, .footer { display: none !important; }
+
+            /* Responsive chatbot height using viewport units.
+               Works at any resolution — chatbot takes 55vh,
+               leaving ~45vh for header + input controls. */
+            div[data-testid="chatbot"] {
+                height: 55vh !important;
+                max-height: 55vh !important;
+                min-height: 200px !important;
+            }
+
+            /* The inner scroll container */
+            div[data-testid="chatbot"] > div[role="log"] {
+                height: 100% !important;
+                max-height: 100% !important;
+                overflow-y: auto !important;
+            }
+
+            /* Brand buttons */
             .wf-btn {
                 background: #00C4A7 !important;
                 color: white !important;
@@ -117,41 +137,27 @@ def init_chatbot():
         </style>
 
         <script>
-        // The gradio-app element has flex-grow:1 set as an inline style in the
-        // page HTML. Our <style> block is inside the shadow DOM and can't reach
-        // it. JS inside gr.HTML runs in the main document context, so we CAN
-        // reach it — but Gradio's own JS may set it AFTER us.
-        // Solution: MutationObserver watches the element's style attribute and
-        // immediately resets flex-grow whenever anything changes it.
+        // Belt-and-braces: set vh-based height via JS too in case
+        // the CSS is overridden by Gradio's inline styles.
         (function() {
-            function lockFlexGrow(el) {
-                // Set it once immediately
-                el.style.setProperty('flex-grow', '0', 'important');
-                el.style.setProperty('height', 'auto', 'important');
-                el.style.setProperty('min-height', 'unset', 'important');
-
-                // Then watch for any future changes and undo them
-                var observer = new MutationObserver(function() {
-                    if (el.style.flexGrow !== '0') {
-                        el.style.setProperty('flex-grow', '0', 'important');
+            function applyHeight() {
+                var chatbot = document.querySelector('div[data-testid="chatbot"]');
+                if (chatbot) {
+                    var vh55 = Math.round(window.innerHeight * 0.55) + 'px';
+                    chatbot.style.setProperty('height', vh55, 'important');
+                    chatbot.style.setProperty('max-height', vh55, 'important');
+                    var log = chatbot.querySelector('div[role="log"]');
+                    if (log) {
+                        log.style.setProperty('height', '100%', 'important');
+                        log.style.setProperty('max-height', '100%', 'important');
+                        log.style.setProperty('overflow-y', 'auto', 'important');
                     }
-                    if (el.style.height !== 'auto') {
-                        el.style.setProperty('height', 'auto', 'important');
-                    }
-                });
-                observer.observe(el, { attributes: true, attributeFilter: ['style'] });
-            }
-
-            function findAndLock() {
-                var app = document.querySelector('gradio-app');
-                if (app) {
-                    lockFlexGrow(app);
                 } else {
-                    setTimeout(findAndLock, 30);
+                    setTimeout(applyHeight, 50);
                 }
             }
-
-            findAndLock();
+            applyHeight();
+            window.addEventListener('resize', applyHeight);
         })();
         </script>
         """)
@@ -160,7 +166,7 @@ def init_chatbot():
 
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
-            height=320,
+            height=500,  # fallback only — CSS/JS overrides this
         )
 
         with gr.Row():
