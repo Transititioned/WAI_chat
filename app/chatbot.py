@@ -82,26 +82,32 @@ def init_chatbot():
         history = history + [{"role": "assistant", "content": reply}]
         return history, ""
 
-    # Gradio 6.0: css and fill_height are no longer Blocks constructor params.
-    # Inject CSS via gr.HTML instead, and control height directly on Chatbot.
     with gr.Blocks() as demo:
 
-        # Inline CSS injection — works in Gradio 6.0 without launch()
         gr.HTML("""
         <style>
             footer, .footer { display: none !important; }
-            .gradio-container {
+
+            /* Kill the full-viewport stretch */
+            .gradio-container,
+            .gradio-container > .main,
+            .gradio-container > .main > .wrap {
                 min-height: unset !important;
                 height: auto !important;
             }
-            .gradio-container > .main > .wrap {
-                min-height: unset !important;
+
+            /* Target the chatbot scroll container directly */
+            .chatbot-wrap,
+            .chatbot-wrap > div,
+            div[data-testid="chatbot"],
+            div[data-testid="chatbot"] > div {
+                max-height: 320px !important;
+                min-height: 120px !important;
+                height: 320px !important;
+                overflow-y: auto !important;
             }
-            .input-controls-row {
-                margin-top: 8px !important;
-                align-items: flex-end !important;
-                gap: 0.75rem !important;
-            }
+
+            /* Brand buttons */
             .wf-btn {
                 background: #00C4A7 !important;
                 color: white !important;
@@ -113,22 +119,43 @@ def init_chatbot():
                 justify-content: center !important;
                 border: none !important;
             }
-            .wf-btn:hover {
-                background: #00A38A !important;
-            }
+            .wf-btn:hover { background: #00A38A !important; }
         </style>
+
+        <script>
+        // JS fallback: poll until the chatbot element exists, then cap its height.
+        // This runs after Gradio's own JS has finished rendering.
+        (function() {
+            function capChatbot() {
+                // Gradio 4.x wraps the chatbot in a div with role="log"
+                var el = document.querySelector('div[role="log"]');
+                if (el) {
+                    el.style.setProperty('max-height', '320px', 'important');
+                    el.style.setProperty('height', '320px', 'important');
+                    el.style.setProperty('overflow-y', 'auto', 'important');
+                    el.style.setProperty('min-height', '120px', 'important');
+                } else {
+                    setTimeout(capChatbot, 300);
+                }
+            }
+            // Run on load and after a short delay to catch Gradio's late renders
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', capChatbot);
+            } else {
+                setTimeout(capChatbot, 500);
+            }
+        })();
+        </script>
         """)
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        # No type= param in Gradio 6.0 — removed
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             height=320,
         )
 
-        with gr.Row(elem_classes=["input-controls-row"]):
-
+        with gr.Row():
             user_input = gr.Textbox(
                 placeholder="Ask WAI...",
                 label="Your question:",
@@ -136,7 +163,7 @@ def init_chatbot():
                 scale=4,
             )
 
-            with gr.Column(elem_classes=["right-controls"], scale=0, min_width=160):
+            with gr.Column(scale=0, min_width=160):
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
 
