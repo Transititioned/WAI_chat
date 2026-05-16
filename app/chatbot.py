@@ -133,18 +133,33 @@ def init_chatbot():
             padding-top: 4px !important;
         }
 
-        /* Brand buttons */
-        .wf-btn {
+        /* Brand buttons — nuclear override for all Gradio button variants */
+        .wf-btn,
+        .wf-btn:not(.hidden),
+        div.wf-btn,
+        button.wf-btn,
+        .block .wf-btn,
+        .gradio-container button.wf-btn,
+        .gradio-container .wf-btn,
+        [class*="svelte"] .wf-btn,
+        .wf-btn[class*="svelte"] {
+            background: #00C4A7 !important;
             background-color: #00C4A7 !important;
             color: white !important;
             border-radius: 8px !important;
             font-weight: 600 !important;
             border: none !important;
-            transition: 0.2s ease-in-out !important;
+            box-shadow: none !important;
+            transition: background 0.2s ease-in-out !important;
+            min-height: 38px !important;
+            line-height: 1.2 !important;
+            white-space: normal !important;
         }
-        .wf-btn:hover {
+        .wf-btn:hover,
+        button.wf-btn:hover,
+        .gradio-container button.wf-btn:hover {
+            background: #00A38A !important;
             background-color: #00A38A !important;
-            transform: translateY(-1px);
         }
     """
 
