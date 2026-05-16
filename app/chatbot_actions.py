@@ -92,7 +92,7 @@ def add_retry_action(chatbot, retrieve_fn):
 # Copy Last Response — Toast UI, no emoji icon
 # ==========================================================
 def add_copy_last_action(chatbot):
-    btn = gr.Button("Copy Last Response", elem_classes=["wf-btn"], variant="secondary")
+    btn = gr.Button("Copy Response", elem_classes=["wf-btn"], variant="secondary")
 
     btn.click(
         None, None, None,
