@@ -10,7 +10,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-from app.chatbot_actions import add_user_actions  # feedback import no longer used
+from app.chatbot_actions import add_user_actions
 from app.router import route, postprocess_answer
 
 
@@ -83,70 +83,65 @@ def init_chatbot():
         return history, ""
 
     custom_css = """
-    footer, .footer { display:none !important; }
+    /* Hide Gradio footer chrome */
+    footer, .footer { display: none !important; }
 
-    .chatbot-area {
-        height: 360px !important;
-        overflow: hidden;
+    /* Stop Blocks from stretching to full viewport height */
+    .gradio-container {
+        min-height: unset !important;
+        height: auto !important;
+    }
+    .gradio-container > .main > .wrap {
+        min-height: unset !important;
     }
 
-    .chatbot-area > .gr-chatbot {
-        height:100% !important;
-        overflow-y:auto !important;
-        margin:0 !important;
-        padding:0 !important;
-    }
-
+    /* Input row layout */
     .input-controls-row {
-        margin-top:12px !important;
-        display:flex;
-        align-items:flex-end;
-        gap:1rem;
+        margin-top: 8px !important;
+        align-items: flex-end !important;
+        gap: 0.75rem !important;
     }
 
-    .right-controls {
-        width:180px;
-        display:flex;
-        flex-direction:column;
-        gap:8px;
-    }
-
+    /* Brand buttons */
     .wf-btn {
-        background:#00C4A7 !important;
-        color:white !important;
-        border-radius:8px !important;
-        font-weight:600 !important;
-        height:38px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
+        background: #00C4A7 !important;
+        color: white !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        height: 38px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: none !important;
     }
-
     .wf-btn:hover {
-        background:#00A38A !important;
+        background: #00A38A !important;
     }
     """
 
-    with gr.Blocks(css=custom_css) as demo:
+    # fill_height=False stops Gradio injecting min-height:100vh on the container
+    with gr.Blocks(css=custom_css, fill_height=False) as demo:
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
+        # height= on the component is the only reliable way to cap chatbot size —
+        # Gradio sets it as an inline style which CSS classes can't override
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
-            elem_classes=["chatbot-area"],
+            height=320,
+            type="messages",
         )
 
-        # 🚫 Feedback UI removed — broken in this Gradio build
-
-        with gr.Row(elem_classes="input-controls-row"):
+        with gr.Row(elem_classes=["input-controls-row"]):
 
             user_input = gr.Textbox(
                 placeholder="Ask WAI...",
                 label="Your question:",
+                lines=1,
                 scale=4,
             )
 
-            with gr.Column(elem_classes=["right-controls"], scale=0):
+            with gr.Column(elem_classes=["right-controls"], scale=0, min_width=160):
 
                 actions = add_user_actions(chatbot, retrieve_and_answer)
 
