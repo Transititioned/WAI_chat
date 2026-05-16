@@ -82,54 +82,49 @@ def init_chatbot():
         history = history + [{"role": "assistant", "content": reply}]
         return history, ""
 
-    custom_css = """
-    /* Hide Gradio footer chrome */
-    footer, .footer { display: none !important; }
+    # Gradio 6.0: css and fill_height are no longer Blocks constructor params.
+    # Inject CSS via gr.HTML instead, and control height directly on Chatbot.
+    with gr.Blocks() as demo:
 
-    /* Stop Blocks from stretching to full viewport height */
-    .gradio-container {
-        min-height: unset !important;
-        height: auto !important;
-    }
-    .gradio-container > .main > .wrap {
-        min-height: unset !important;
-    }
-
-    /* Input row layout */
-    .input-controls-row {
-        margin-top: 8px !important;
-        align-items: flex-end !important;
-        gap: 0.75rem !important;
-    }
-
-    /* Brand buttons */
-    .wf-btn {
-        background: #00C4A7 !important;
-        color: white !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        height: 38px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: none !important;
-    }
-    .wf-btn:hover {
-        background: #00A38A !important;
-    }
-    """
-
-    # fill_height=False stops Gradio injecting min-height:100vh on the container
-    with gr.Blocks(css=custom_css, fill_height=False) as demo:
+        # Inline CSS injection — works in Gradio 6.0 without launch()
+        gr.HTML("""
+        <style>
+            footer, .footer { display: none !important; }
+            .gradio-container {
+                min-height: unset !important;
+                height: auto !important;
+            }
+            .gradio-container > .main > .wrap {
+                min-height: unset !important;
+            }
+            .input-controls-row {
+                margin-top: 8px !important;
+                align-items: flex-end !important;
+                gap: 0.75rem !important;
+            }
+            .wf-btn {
+                background: #00C4A7 !important;
+                color: white !important;
+                border-radius: 8px !important;
+                font-weight: 600 !important;
+                height: 38px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border: none !important;
+            }
+            .wf-btn:hover {
+                background: #00A38A !important;
+            }
+        </style>
+        """)
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        # height= on the component is the only reliable way to cap chatbot size —
-        # Gradio sets it as an inline style which CSS classes can't override
+        # No type= param in Gradio 6.0 — removed
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
             height=320,
-            type="messages",
         )
 
         with gr.Row(elem_classes=["input-controls-row"]):
