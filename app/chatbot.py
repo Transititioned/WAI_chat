@@ -148,8 +148,8 @@ def init_chatbot():
             color: white !important;
             border-radius: 8px !important;
             font-weight: 600 !important;
-            border: none !important;
-            box-shadow: none !important;
+            border: 1.5px solid rgba(0,0,0,0.12) !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.10) !important;
             transition: background 0.2s ease-in-out !important;
             min-height: 38px !important;
             line-height: 1.2 !important;
