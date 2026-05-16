@@ -83,16 +83,16 @@ def add_retry_action(chatbot, retrieve_fn):
             history.append({"role": "assistant", "content": f"⚠️ Retry failed: {e}"})
         return history
 
-    btn = gr.Button("Retry Last", variant="secondary")
+    btn = gr.Button("Retry Last", variant="secondary", elem_classes=["wf-btn"])
     btn.click(fn=retry_last, inputs=chatbot, outputs=chatbot)
     return btn
 
 
 # ==========================================================
-# 📋 Copy Last Response — now Toast UI (no alert popup)
+# Copy Last Response — Toast UI, no emoji icon
 # ==========================================================
 def add_copy_last_action(chatbot):
-    btn = gr.Button("📋 Copy Last Response", elem_classes=["wf-btn"], variant="primary")
+    btn = gr.Button("Copy Last Response", elem_classes=["wf-btn"], variant="secondary")
 
     btn.click(
         None, None, None,
@@ -104,7 +104,6 @@ def add_copy_last_action(chatbot):
             const text = blocks[blocks.length-1].innerText.trim();
             if(text.length) navigator.clipboard.writeText(text);
 
-            // ---- 🎉 Toast instead of alert ----
             let toast = document.createElement("div");
             toast.innerText = "Copied ✓";
             toast.style.cssText = `
