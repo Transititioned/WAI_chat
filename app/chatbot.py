@@ -123,7 +123,7 @@ def init_chatbot():
 
         /* Chatbot fixed height with scroll */
         .chatbot-area {
-            max-height: 300px !important;
+            max-height: 200px !important;
             overflow-y: auto !important;
         }
 
@@ -154,7 +154,7 @@ def init_chatbot():
 
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
-            height=300,
+            height=200,
             elem_classes=["chatbot-area"],
         )
 
