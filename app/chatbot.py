@@ -99,74 +99,46 @@ def init_chatbot():
         history = history + [{"role": "assistant", "content": reply}]
         return history, ""
 
-    with gr.Blocks() as demo:
+    # css= on gr.Blocks is the correct way to inject styles in Gradio 4.x —
+    # it gets injected into the page <head>, not the shadow DOM like gr.HTML does.
+    custom_css = """
+        footer, .footer { display: none !important; }
 
-        gr.HTML("""
-        <style>
-            footer, .footer { display: none !important; }
+        /* Responsive chatbot: 55vh so controls always visible at any resolution */
+        div[data-testid="chatbot"] {
+            height: 55vh !important;
+            max-height: 55vh !important;
+            min-height: 200px !important;
+        }
 
-            /* Responsive chatbot height using viewport units.
-               Works at any resolution — chatbot takes 55vh,
-               leaving ~45vh for header + input controls. */
-            div[data-testid="chatbot"] {
-                height: 55vh !important;
-                max-height: 55vh !important;
-                min-height: 200px !important;
-            }
+        div[data-testid="chatbot"] > div[role="log"] {
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow-y: auto !important;
+        }
 
-            /* The inner scroll container */
-            div[data-testid="chatbot"] > div[role="log"] {
-                height: 100% !important;
-                max-height: 100% !important;
-                overflow-y: auto !important;
-            }
+        /* Brand buttons */
+        .wf-btn {
+            background: #00C4A7 !important;
+            color: white !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            height: 38px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: none !important;
+        }
+        .wf-btn:hover { background: #00A38A !important; }
+    """
 
-            /* Brand buttons */
-            .wf-btn {
-                background: #00C4A7 !important;
-                color: white !important;
-                border-radius: 8px !important;
-                font-weight: 600 !important;
-                height: 38px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                border: none !important;
-            }
-            .wf-btn:hover { background: #00A38A !important; }
-        </style>
-
-        <script>
-        // Belt-and-braces: set vh-based height via JS too in case
-        // the CSS is overridden by Gradio's inline styles.
-        (function() {
-            function applyHeight() {
-                var chatbot = document.querySelector('div[data-testid="chatbot"]');
-                if (chatbot) {
-                    var vh55 = Math.round(window.innerHeight * 0.55) + 'px';
-                    chatbot.style.setProperty('height', vh55, 'important');
-                    chatbot.style.setProperty('max-height', vh55, 'important');
-                    var log = chatbot.querySelector('div[role="log"]');
-                    if (log) {
-                        log.style.setProperty('height', '100%', 'important');
-                        log.style.setProperty('max-height', '100%', 'important');
-                        log.style.setProperty('overflow-y', 'auto', 'important');
-                    }
-                } else {
-                    setTimeout(applyHeight, 50);
-                }
-            }
-            applyHeight();
-            window.addEventListener('resize', applyHeight);
-        })();
-        </script>
-        """)
+    with gr.Blocks(css=custom_css) as demo:
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
         chatbot = gr.Chatbot(
             label="WorkFriend Conversation",
-            height=500,  # fallback only — CSS/JS overrides this
+            height=500,  # fallback — CSS overrides with 55vh
         )
 
         with gr.Row():
