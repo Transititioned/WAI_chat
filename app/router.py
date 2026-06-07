@@ -25,20 +25,32 @@ ROUTE_MAP = {
     "privacy":      "gov_ai"
 }
 
-def route(question: str) -> str:
+def route_info(question: str) -> dict:
     """
-    Soft routing — determines the *thinking lens*,
-    NOT the file system. Corpus still global for now.
+    Determines both the retrieval domain and the answering lens.
     """
-
     q = question.lower()
 
     for k, lens in ROUTE_MAP.items():
         if k in q:
-            return f"Use the **{lens} lens** when answering. Respond practically."
+            return {
+                "domain": lens,
+                "confidence": "keyword",
+                "lens": f"Use the **{lens} lens** when answering. Respond practically.",
+            }
 
-    # fallback
-    return "Use general PM/leadership reasoning. Be helpful, concise and pragmatic."
+    return {
+        "domain": None,
+        "confidence": "fallback",
+        "lens": "Use general PM/leadership reasoning. Be helpful, concise and pragmatic.",
+    }
+
+
+def route(question: str) -> str:
+    """
+    Backwards-compatible soft routing prompt.
+    """
+    return route_info(question)["lens"]
 
 
 def postprocess_answer(model_answer: str) -> str:

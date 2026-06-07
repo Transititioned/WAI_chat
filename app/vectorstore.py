@@ -14,12 +14,12 @@ def init_vectorstore():
     """Builds or loads Chroma index for markdown documents with verbose debug output."""
     try:
         print(f"[DEBUG] INDEX_DIR={config.INDEX_DIR}")
-        print(f"[DEBUG] ARTICLES_DIR={config.ARTICLES_DIR}")
+        print(f"[DEBUG] CONTENT_DIR={config.CONTENT_DIR}")
         print(f"[DEBUG] OPENAI_KEY={'YES' if config.OPENAI_KEY else 'NO'}")
 
-        # Load markdown docs
-        docs = loaders.load_markdown_chunks(config.ARTICLES_DIR)
-        print(f"[DEBUG] Loaded {len(docs)} total markdown chunks.")
+        # Load corpus docs
+        docs = loaders.load_corpus_chunks(config.CONTENT_DIR)
+        print(f"[DEBUG] Loaded {len(docs)} total corpus chunks.")
 
         if not docs:
             print("⚠️ No markdown files found — skipping vectorstore build.")
