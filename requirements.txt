@@ -1,14 +1,17 @@
 fastapi==0.111.0
-uvicorn>=0.23
+uvicorn==0.30.1
 starlette==0.37.2
 jinja2==3.1.4
 gradio==4.36.1
 huggingface_hub==0.23.4
 
-pydantic>=2.0
-langchain
-langchain-openai
-langchain-community
-chromadb
-tiktoken
-openai
+pydantic==2.7.4
+openai==1.35.3
+tiktoken==0.7.0
+
+langchain==0.2.6
+langchain-openai==0.1.14
+langchain-community==0.2.6
+langsmith==0.1.83
+
+chromadb==0.5.3
