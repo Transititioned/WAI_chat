@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -37,6 +38,55 @@ def main():
             "project-management routing failed")
     require(route_info("How do we improve metadata quality?")["domain"] == "data_gov",
             "data-governance routing failed")
+
+    taking_the_wheel = [
+        doc for doc in docs
+        if doc["metadata"].get("source") == "taking_the_wheel.md"
+    ]
+    require(taking_the_wheel, "Taking the Wheel article was not indexed")
+    require(
+        taking_the_wheel[0]["metadata"].get("title") == "Taking the Wheel: The Art of the Project Takeover",
+        "frontmatter title was not attached to article chunks",
+    )
+    require(
+        "project-delivery" in taking_the_wheel[0]["metadata"].get("tags", ""),
+        "frontmatter tags were not attached to article chunks",
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        content_dir = Path(tmp)
+        articles_dir = content_dir / "articles"
+        articles_dir.mkdir()
+        (articles_dir / "change-management-at-the-messy-start.md").write_text(
+            """---
+title: Change Management at the Messy Start
+domain: change_management
+type: article
+tags:
+- early_change
+- stakeholder_narratives
+- sensemaking
+status: published
+---
+
+# Change Management at the Messy Start
+
+- "This will be dumped on us."
+- "The decision has already been made."
+- "They'll ask for input, then ignore it."
+""",
+            encoding="utf-8",
+        )
+        fixture_docs = load_corpus_chunks(content_dir)
+        require(fixture_docs, "frontmatter fixture was not loaded")
+        metadata = fixture_docs[0]["metadata"]
+        require(metadata["title"] == "Change Management at the Messy Start",
+                "fixture title was not parsed")
+        require(metadata["domain"] == "change_mgmt",
+                "frontmatter domain alias was not normalized")
+        require(metadata["type"] == "article", "fixture type was not parsed")
+        require("stakeholder_narratives" in metadata["tags"], "fixture tags were not parsed")
+        require(metadata["status"] == "published", "fixture status was not parsed")
 
     print(f"OK: loaded {len(docs)} chunks across domains: {sorted(domains)}")
 

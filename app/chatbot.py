@@ -4,6 +4,7 @@
 
 import os
 from pathlib import Path
+import re
 import gradio as gr
 
 from langchain_community.vectorstores import Chroma
@@ -62,9 +63,107 @@ vectordb = Chroma.from_texts(
 )
 
 
-def _keyword_matches(question: str, domain: str | None = None, limit: int = 3):
-    terms = [term for term in question.lower().replace("_", " ").split() if len(term) >= 4]
-    phrase = question.lower().strip()
+def _rag_debug_enabled() -> bool:
+    return os.getenv("RAG_DEBUG", "").lower() == "true"
+
+
+def _debug(message: str):
+    if _rag_debug_enabled():
+        print(f"[RAG_DEBUG] {message}")
+
+
+def _normalize_text(value: str) -> str:
+    value = value or ""
+    value = value.lower()
+    value = re.sub(r"[_\-]+", " ", value)
+    value = re.sub(r"[^a-z0-9\s]+", " ", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _quoted_phrases(question: str):
+    return [
+        _normalize_text(match)
+        for match in re.findall(r"['\"]([^'\"]+)['\"]", question)
+        if _normalize_text(match)
+    ]
+
+
+def _source_key(metadata: dict) -> str:
+    return metadata.get("source_path") or metadata.get("source_filename") or metadata.get("source", "")
+
+
+def _source_chunks(source_key: str, limit: int = 8):
+    matches = [
+        doc for doc in corpus_docs
+        if _source_key(doc["metadata"]) == source_key
+    ]
+    matches.sort(key=lambda doc: doc["metadata"].get("chunk_index", 0))
+    return matches[:limit]
+
+
+def _metadata_candidates(metadata: dict):
+    source = metadata.get("source", "")
+    filename = metadata.get("source_filename", source)
+    source_stem = Path(filename).stem
+    title = metadata.get("title", "")
+    heading = metadata.get("heading_path", "")
+
+    return {
+        "title": title,
+        "filename": filename,
+        "source_stem": source_stem,
+        "source": source,
+        "heading": heading,
+    }
+
+
+def _exact_source_match(question: str):
+    query_norm = _normalize_text(question)
+    quoted = _quoted_phrases(question)
+    best_match = None
+
+    for doc in corpus_docs:
+        metadata = doc["metadata"]
+        candidates = _metadata_candidates(metadata)
+
+        for match_type, value in candidates.items():
+            value_norm = _normalize_text(value)
+            if not value_norm or len(value_norm) < 4:
+                continue
+
+            is_match = value_norm in query_norm
+            is_match = is_match or any(
+                phrase == value_norm
+                or value_norm.startswith(phrase)
+                or phrase in value_norm
+                for phrase in quoted
+            )
+
+            if not is_match:
+                continue
+
+            score = len(value_norm)
+            if match_type == "title":
+                score += 100
+            elif match_type in {"filename", "source_stem", "source"}:
+                score += 75
+            else:
+                score += 40
+
+            if not best_match or score > best_match["score"]:
+                best_match = {
+                    "score": score,
+                    "match_type": match_type,
+                    "matched_value": value,
+                    "source_key": _source_key(metadata),
+                }
+
+    return best_match
+
+
+def _metadata_matches(question: str, domain: str | None = None, limit: int = 4):
+    terms = [term for term in _normalize_text(question).split() if len(term) >= 4]
+    phrase = _normalize_text(question)
     scored = []
 
     for doc in corpus_docs:
@@ -73,16 +172,22 @@ def _keyword_matches(question: str, domain: str | None = None, limit: int = 3):
             continue
 
         metadata_text = " ".join([
+            metadata.get("title", ""),
             metadata.get("source", ""),
+            metadata.get("source_filename", ""),
             metadata.get("source_path", ""),
             metadata.get("heading_path", ""),
+            metadata.get("type", ""),
             metadata.get("doc_type", ""),
             metadata.get("domain", ""),
+            metadata.get("tags", ""),
+            metadata.get("status", ""),
         ]).lower()
+        metadata_text = _normalize_text(metadata_text)
 
         score = 0
         if phrase and phrase in metadata_text:
-            score += 10
+            score += 25
         score += sum(1 for term in terms if term in metadata_text)
 
         if score:
@@ -109,30 +214,62 @@ def _format_context(docs) -> str:
 
         source = metadata.get("source_path") or metadata.get("source", "unknown source")
         domain = metadata.get("domain", "unknown")
+        title = metadata.get("title") or "Untitled"
         heading = metadata.get("heading_path") or "No heading captured"
         confidence = metadata.get("confidence", "unspecified")
+        tags = metadata.get("tags") or "none"
 
         formatted.append(
-            f"[Source: {source} | Domain: {domain} | Heading: {heading} | Confidence: {confidence}]\n"
+            f"[Source: {source} | Title: {title} | Domain: {domain} | "
+            f"Tags: {tags} | Heading: {heading} | Confidence: {confidence}]\n"
             f"{content}"
         )
 
     return "\n\n".join(formatted)
 
 
+def _semantic_search(question: str, domain: str | None = None, k: int = 4):
+    filter_arg = {"domain": domain} if domain else None
+
+    try:
+        if filter_arg:
+            docs_with_scores = vectordb.similarity_search_with_score(question, k=k, filter=filter_arg)
+        else:
+            docs_with_scores = vectordb.similarity_search_with_score(question, k=k)
+        return [doc for doc, _ in docs_with_scores], docs_with_scores
+    except Exception as e:
+        _debug(f"similarity scores unavailable: {e}")
+        if filter_arg:
+            return vectordb.similarity_search(question, k=k, filter=filter_arg), []
+        return vectordb.similarity_search(question, k=k), []
+
+
 def _retrieve(question: str, domain: str | None):
-    matches = _keyword_matches(question, domain=domain)
+    exact = _exact_source_match(question)
+
+    if exact:
+        docs = _source_chunks(exact["source_key"])
+        matched_title = exact["matched_value"] if exact["match_type"] in {"title", "heading"} else "none"
+        matched_filename = exact["matched_value"] if exact["match_type"] in {"filename", "source_stem", "source"} else "none"
+        retrieval_mode = "exact filename" if matched_filename != "none" else "exact title"
+        _debug(f"selected_domain={domain or 'none'}")
+        _debug(f"matched_title={matched_title}")
+        _debug(f"matched_filename={matched_filename}")
+        _debug(f"retrieval_mode={retrieval_mode}")
+        _debug(f"source_files={sorted({_source_key(doc['metadata']) for doc in docs})}")
+        _debug(f"chunk_count={len(docs)}")
+        return docs
+
+    matches = _metadata_matches(question, domain=domain)
 
     if domain:
-        vector_docs = vectordb.similarity_search(
-            question,
-            k=4,
-            filter={"domain": domain},
-        )
+        vector_docs, scores = _semantic_search(question, domain=domain, k=4)
         if len(vector_docs) < 2:
-            vector_docs.extend(vectordb.similarity_search(question, k=4))
+            fallback_docs, fallback_scores = _semantic_search(question, k=4)
+            vector_docs.extend(fallback_docs)
+            scores.extend(fallback_scores)
     else:
-        vector_docs = vectordb.similarity_search(question, k=4)
+        vector_docs, scores = _semantic_search(question, k=4)
 
     combined = []
     seen = set()
@@ -144,6 +281,20 @@ def _retrieve(question: str, domain: str | None):
         combined.append(doc)
         if len(combined) == 5:
             break
+
+    mode = "metadata" if matches else "semantic"
+    _debug(f"selected_domain={domain or 'none'}")
+    _debug(f"matched_title=none")
+    _debug(f"matched_filename=none")
+    _debug(f"retrieval_mode={mode}")
+    _debug(f"source_files={sorted({_source_key(doc['metadata'] if isinstance(doc, dict) else doc.metadata) for doc in combined})}")
+    _debug(f"chunk_count={len(combined)}")
+    if scores:
+        score_parts = [
+            f"{doc.metadata.get('source_path', doc.metadata.get('source', 'unknown'))}:{score}"
+            for doc, score in scores
+        ]
+        _debug(f"similarity_scores={score_parts}")
 
     return combined
 
