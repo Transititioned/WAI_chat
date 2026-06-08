@@ -1,3 +1,16 @@
+---
+title: So… What Would Project Success Look Like?
+domain: project_management
+type: article
+tags:
+  - project_value
+  - project_objectives
+  - sensemaking
+status: published
+---
+
+
+
 # So… What Would Project Success Look Like?
 
 You can tell when a project’s in trouble even before the metrics catch up.
