@@ -13,6 +13,14 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from app import loaders
 from app.chatbot_actions import add_user_actions
+from app.retrieval_policy import (
+    detect_retrieval_intent,
+    metadata_for,
+    metadata_key,
+    normalize_text,
+    rank_retrieval_candidates,
+    source_key,
+)
 from app.router import route_info, postprocess_answer
 
 
@@ -73,11 +81,7 @@ def _debug(message: str):
 
 
 def _normalize_text(value: str) -> str:
-    value = value or ""
-    value = value.lower()
-    value = re.sub(r"[_\-]+", " ", value)
-    value = re.sub(r"[^a-z0-9\s]+", " ", value)
-    return re.sub(r"\s+", " ", value).strip()
+    return normalize_text(value)
 
 
 def _quoted_phrases(question: str):
@@ -89,7 +93,7 @@ def _quoted_phrases(question: str):
 
 
 def _source_key(metadata: dict) -> str:
-    return metadata.get("source_path") or metadata.get("source_filename") or metadata.get("source", "")
+    return source_key(metadata)
 
 
 def _source_chunks(source_key: str, limit: int = 8):
@@ -182,6 +186,11 @@ def _metadata_matches(question: str, domain: str | None = None, limit: int = 4):
             metadata.get("domain", ""),
             metadata.get("tags", ""),
             metadata.get("status", ""),
+            metadata.get("secondary_domains", ""),
+            metadata.get("stage", ""),
+            metadata.get("trigger_phrases", ""),
+            metadata.get("retrieval_intent", ""),
+            metadata.get("id", ""),
         ]).lower()
         metadata_text = _normalize_text(metadata_text)
 
@@ -198,8 +207,7 @@ def _metadata_matches(question: str, domain: str | None = None, limit: int = 4):
 
 
 def _metadata_key(doc) -> tuple:
-    metadata = doc["metadata"] if isinstance(doc, dict) else doc.metadata
-    return metadata.get("source_path"), metadata.get("chunk_index")
+    return metadata_key(doc)
 
 
 def _format_context(docs) -> str:
@@ -215,12 +223,13 @@ def _format_context(docs) -> str:
         source = metadata.get("source_path") or metadata.get("source", "unknown source")
         domain = metadata.get("domain", "unknown")
         title = metadata.get("title") or "Untitled"
+        doc_type = metadata.get("type") or metadata.get("doc_type") or "unknown"
         heading = metadata.get("heading_path") or "No heading captured"
         confidence = metadata.get("confidence", "unspecified")
         tags = metadata.get("tags") or "none"
 
         formatted.append(
-            f"[Source: {source} | Title: {title} | Domain: {domain} | "
+            f"[Source: {source} | Title: {title} | Type: {doc_type} | Domain: {domain} | "
             f"Tags: {tags} | Heading: {heading} | Confidence: {confidence}]\n"
             f"{content}"
         )
@@ -244,51 +253,123 @@ def _semantic_search(question: str, domain: str | None = None, k: int = 4):
         return vectordb.similarity_search(question, k=k), []
 
 
-def _retrieve(question: str, domain: str | None):
-    exact = _exact_source_match(question)
+def _semantic_candidates(question: str, domain: str | None = None, k: int = 6):
+    docs, scores = _semantic_search(question, domain=domain, k=k)
+    score_by_key = {
+        _metadata_key(doc): score
+        for doc, score in scores
+    }
+    candidates = []
 
-    if exact:
-        docs = _source_chunks(exact["source_key"])
+    for doc in docs:
+        distance = score_by_key.get(_metadata_key(doc))
+        rank_score = 0
+        if isinstance(distance, (int, float)):
+            rank_score = max(0, 20 - float(distance))
+        candidates.append({
+            "doc": doc,
+            "origin": "semantic",
+            "score": rank_score,
+            "distance": distance,
+        })
+
+    return candidates, scores
+
+
+def _retrieve(question: str, domain: str | None):
+    intent = detect_retrieval_intent(question)
+    exact = _exact_source_match(question)
+    exact_docs = _source_chunks(exact["source_key"]) if exact else []
+
+    if exact and intent == "source_lookup":
+        docs = exact_docs
         matched_title = exact["matched_value"] if exact["match_type"] in {"title", "heading"} else "none"
         matched_filename = exact["matched_value"] if exact["match_type"] in {"filename", "source_stem", "source"} else "none"
         retrieval_mode = "exact filename" if matched_filename != "none" else "exact title"
+        _debug(f"detected_intent={intent}")
         _debug(f"selected_domain={domain or 'none'}")
         _debug(f"matched_title={matched_title}")
         _debug(f"matched_filename={matched_filename}")
         _debug(f"retrieval_mode={retrieval_mode}")
+        _debug("semantic_search_run=no")
         _debug(f"source_files={sorted({_source_key(doc['metadata']) for doc in docs})}")
         _debug(f"chunk_count={len(docs)}")
+        _debug("short_circuit_reason=source_lookup_exact_match")
         return docs
 
     matches = _metadata_matches(question, domain=domain)
+    semantic_run = True
 
-    if domain:
-        vector_docs, scores = _semantic_search(question, domain=domain, k=4)
-        if len(vector_docs) < 2:
-            fallback_docs, fallback_scores = _semantic_search(question, k=4)
-            vector_docs.extend(fallback_docs)
+    if intent == "advisory":
+        semantic_candidates, scores = _semantic_candidates(question, k=10)
+    elif domain:
+        semantic_candidates, scores = _semantic_candidates(question, domain=domain, k=6)
+        if len(semantic_candidates) < 2:
+            fallback_candidates, fallback_scores = _semantic_candidates(question, k=6)
+            semantic_candidates.extend(fallback_candidates)
             scores.extend(fallback_scores)
     else:
-        vector_docs, scores = _semantic_search(question, k=4)
+        semantic_candidates, scores = _semantic_candidates(question, k=6)
 
-    combined = []
-    seen = set()
-    for doc in matches + vector_docs:
-        key = _metadata_key(doc)
-        if key in seen:
-            continue
-        seen.add(key)
-        combined.append(doc)
-        if len(combined) == 5:
-            break
+    candidates = []
+    candidates.extend({"doc": doc, "origin": "exact", "score": 0} for doc in exact_docs)
+    candidates.extend({"doc": doc, "origin": "metadata", "score": 0} for doc in matches)
+    candidates.extend(semantic_candidates)
+
+    ranked_candidates = rank_retrieval_candidates(candidates, intent=intent, limit=5, return_details=True)
+    combined = [candidate["doc"] for candidate in ranked_candidates]
 
     mode = "metadata" if matches else "semantic"
+    if exact and intent == "advisory":
+        mode = "advisory blended"
+    matched_title = (
+        exact["matched_value"]
+        if exact and exact["match_type"] in {"title", "heading"}
+        else "none"
+    )
+    matched_filename = (
+        exact["matched_value"]
+        if exact and exact["match_type"] in {"filename", "source_stem", "source"}
+        else "none"
+    )
+    final_chunks = []
+    for index, candidate in enumerate(ranked_candidates, start=1):
+        doc = candidate["doc"]
+        metadata = metadata_for(doc)
+        final_chunks.append({
+            "order": index,
+            "title": metadata.get("title", ""),
+            "source": _source_key(metadata),
+            "type": metadata.get("type") or metadata.get("doc_type", ""),
+            "origin": candidate.get("origin", ""),
+            "raw_score": candidate.get("raw_score", 0),
+            "adjusted_score": candidate.get("adjusted_score", 0),
+            "reasons": candidate.get("rank_reasons", []),
+        })
+
+    _debug(f"detected_intent={intent}")
     _debug(f"selected_domain={domain or 'none'}")
-    _debug(f"matched_title=none")
-    _debug(f"matched_filename=none")
+    _debug(f"matched_title={matched_title}")
+    _debug(f"matched_filename={matched_filename}")
+    _debug(f"exact_match_found={'yes' if exact else 'no'}")
+    _debug(f"metadata_matches_found={len(matches)}")
+    _debug(f"semantic_search_run={'yes' if semantic_run else 'no'}")
     _debug(f"retrieval_mode={mode}")
+    _debug("short_circuit_reason=none")
     _debug(f"source_files={sorted({_source_key(doc['metadata'] if isinstance(doc, dict) else doc.metadata) for doc in combined})}")
     _debug(f"chunk_count={len(combined)}")
+    for chunk in final_chunks:
+        _debug(
+            "final_chunk "
+            f"order={chunk['order']} "
+            f"file={chunk['source']} "
+            f"title={chunk['title']} "
+            f"type={chunk['type']} "
+            f"origin={chunk['origin']} "
+            f"raw_score={chunk['raw_score']} "
+            f"adjusted_score={chunk['adjusted_score']} "
+            f"reasons={chunk['reasons']}"
+        )
     if scores:
         score_parts = [
             f"{doc.metadata.get('source_path', doc.metadata.get('source', 'unknown'))}:{score}"
@@ -301,19 +382,36 @@ def _retrieve(question: str, domain: str | None):
 
 def retrieve_and_answer(q: str) -> str:
     routing = route_info(q)
+    intent = detect_retrieval_intent(q)
     docs = _retrieve(q, routing["domain"])
     context = _format_context(docs)
+    if intent == "advisory":
+        response_shape = (
+            "For advisory/diagnostic questions, lead with the most specific trigger-action cards or examples in context. "
+            "Use this structure:\n"
+            "1. **What patterns are showing up**\n"
+            "2. **Evidence from your situation**\n"
+            "3. **What to do first**\n"
+            "4. **What to say**\n"
+            "5. **Artefact / meeting move**\n"
+            "6. **Supporting frameworks**\n"
+            "Do not lead with broad article frameworks when specific cards are available."
+        )
+    else:
+        response_shape = (
+            "Respond using:\n"
+            "1. **Answer**\n"
+            "2. **Why it matters**\n"
+            "3. **Plays/Examples**"
+        )
 
     prompt = ChatPromptTemplate.from_template(
         "{system}\n\nContext:\n{context}\n\n"
         "Use the provided source labels when grounding the answer. "
         "Distinguish confirmed facts from inferences or assumptions when the context is thin.\n\n"
-        "Respond using:\n"
-        "1. **Answer**\n"
-        "2. **Why it matters**\n"
-        "3. **Plays/Examples**\n\n"
+        "{response_shape}\n\n"
         "User: {q}"
-    ).format(system=routing["lens"], context=context, q=q)
+    ).format(system=routing["lens"], context=context, response_shape=response_shape, q=q)
 
     res = llm.invoke(prompt)
     return postprocess_answer(res.content)
