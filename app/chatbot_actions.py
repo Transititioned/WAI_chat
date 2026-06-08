@@ -72,15 +72,18 @@ def add_retry_action(chatbot, retrieve_fn):
             if isinstance(msg, dict) and msg.get("role") == "user":
                 last_user = msg["content"]
                 break
+            if isinstance(msg, (list, tuple)) and msg:
+                last_user = msg[0]
+                break
 
         if not last_user:
             return history
 
         try:
             new_answer = retrieve_fn(last_user)
-            history.append({"role": "assistant", "content": new_answer})
+            history.append((last_user, new_answer))
         except Exception as e:
-            history.append({"role": "assistant", "content": f"⚠️ Retry failed: {e}"})
+            history.append((last_user, f"⚠️ Retry failed: {e}"))
         return history
 
     btn = gr.Button("Retry Last", variant="secondary", elem_classes=["wf-btn"])

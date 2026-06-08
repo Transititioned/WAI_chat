@@ -326,9 +326,9 @@ def handle_message(message: str) -> str:
 def init_chatbot():
 
     def answer_fn(msg, history):
-        history = history + [{"role": "user", "content": msg}]
+        history = history or []
         reply = retrieve_and_answer(msg)
-        history = history + [{"role": "assistant", "content": reply}]
+        history = history + [(msg, reply)]
         return history, ""
 
     # Proven CSS pattern from CaveBot 0.3.9 lessons:
@@ -403,7 +403,6 @@ def init_chatbot():
             label="WorkFriend Conversation",
             height=200,
             elem_classes=["chatbot-area"],
-            type="messages",
         )
 
         with gr.Row(elem_classes=["input-row"], equal_height=True):
