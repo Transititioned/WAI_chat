@@ -1,5 +1,5 @@
 ---
-title: Workfriendai
+title: WAI_Chat
 emoji: 🚀
 colorFrom: blue
 colorTo: blue
