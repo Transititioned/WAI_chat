@@ -403,6 +403,7 @@ def init_chatbot():
             label="WorkFriend Conversation",
             height=200,
             elem_classes=["chatbot-area"],
+            type="messages",
         )
 
         with gr.Row(elem_classes=["input-row"], equal_height=True):
