@@ -1,9 +1,15 @@
 ---
 
 title: Change Management at the Messy Start
-category: change_management
+domain: change_management
 type: article
+tags:
+  - early_change
+  - stakeholder_narratives
+  - project_discovery
+status: published
 -------------
+
 
 # Change Management at the Messy Start
 
