@@ -435,6 +435,11 @@ def init_chatbot():
     # this is what actually causes the below-the-fold issue.
     # Combined with a fixed chatbot height + overflow-y: auto for scrolling.
     custom_css = """
+        body, .gradio-container {
+            background: #f7f7f5 !important;
+            color: #111827 !important;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        }
         footer, .footer { display: none !important; }
 
         /* Universal reset — kills all invisible Gradio padding/gaps */
@@ -451,12 +456,109 @@ def init_chatbot():
             gap: 0 !important;
         }
 
+        .wf-brand-shell {
+            max-width: 1180px !important;
+            margin: 0 auto !important;
+            padding: 12px 16px 0 !important;
+        }
+        .wf-brand-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            min-height: 58px !important;
+            border-bottom: 1px solid rgba(17,24,39,0.10) !important;
+            background: #f7f7f5 !important;
+        }
+        .wf-brand-left {
+            display: flex !important;
+            align-items: center !important;
+            gap: 14px !important;
+            min-width: 0 !important;
+        }
+        .wf-brand-mark {
+            width: 46px !important;
+            height: 46px !important;
+            border-radius: 50% !important;
+            border: 2px solid #12c2a5 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #ffffff !important;
+            color: #0f7f6f !important;
+            font-size: 22px !important;
+            font-weight: 800 !important;
+            box-shadow: 0 1px 4px rgba(15,23,42,0.10) !important;
+            flex: 0 0 auto !important;
+        }
+        .wf-brand-title {
+            font-size: 23px !important;
+            line-height: 1.1 !important;
+            font-weight: 800 !important;
+            color: #111827 !important;
+            letter-spacing: 0 !important;
+        }
+        .wf-brand-subtitle {
+            font-size: 13px !important;
+            line-height: 1.2 !important;
+            color: #64748b !important;
+            margin-top: 4px !important;
+        }
+        .wf-brand-nav {
+            display: flex !important;
+            align-items: center !important;
+            gap: 20px !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            color: #111827 !important;
+            white-space: nowrap !important;
+        }
+        .wf-brand-pill {
+            display: inline-flex !important;
+            align-items: center !important;
+            min-height: 34px !important;
+            padding: 0 12px !important;
+            background: #ffffff !important;
+            border: 1px solid rgba(17,24,39,0.08) !important;
+            color: #111827 !important;
+            font-weight: 800 !important;
+        }
+        .wf-brand-strip {
+            margin: 12px -16px 12px !important;
+            min-height: 38px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 12px !important;
+            background: #00C4A7 !important;
+            color: #ffffff !important;
+            font-size: 19px !important;
+            font-weight: 800 !important;
+        }
+        .wf-brand-strip span {
+            display: inline-flex !important;
+            align-items: center !important;
+            min-height: 22px !important;
+            padding: 0 9px !important;
+            border-radius: 999px !important;
+            background: #ffffff !important;
+            color: #00A38A !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+        }
+
         /* Chatbot fixed height with scroll */
         .chatbot-area {
             max-height: 200px !important;
             overflow-y: auto !important;
         }
 
+        #wf-chat-shell {
+            background: #ffffff !important;
+            border: 1px solid rgba(17,24,39,0.12) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 5px rgba(15,23,42,0.08) !important;
+            overflow: hidden !important;
+        }
         #wf-chat-shell {
             position: relative !important;
         }
@@ -545,11 +647,52 @@ def init_chatbot():
             background: #00A38A !important;
             background-color: #00A38A !important;
         }
+        @media (max-width: 720px) {
+            .wf-brand-header {
+                align-items: flex-start !important;
+                flex-direction: column !important;
+                gap: 10px !important;
+                padding-bottom: 10px !important;
+            }
+            .wf-brand-nav {
+                gap: 12px !important;
+                font-size: 13px !important;
+                flex-wrap: wrap !important;
+            }
+            .wf-brand-strip {
+                font-size: 15px !important;
+                padding: 4px 10px !important;
+                text-align: center !important;
+            }
+        }
     """
 
     with gr.Blocks(css=custom_css) as demo:
 
-        gr.Markdown("### 💬 WorkFriend Chatbot")
+        gr.HTML(
+            """
+            <div class="wf-brand-shell">
+                <div class="wf-brand-header">
+                    <div class="wf-brand-left">
+                        <div class="wf-brand-mark">✓</div>
+                        <div>
+                            <div class="wf-brand-title">Workfriend.ai</div>
+                            <div class="wf-brand-subtitle">Practical help for messy work, projects, and change.</div>
+                        </div>
+                    </div>
+                    <div class="wf-brand-nav">
+                        <span>About</span>
+                        <span>Articles</span>
+                        <span>Playbooks</span>
+                        <span class="wf-brand-pill">Chat with Workfriend</span>
+                    </div>
+                </div>
+                <div class="wf-brand-strip">
+                    Workfriend.ai - AI that's on your side. <span>Ask WAI</span>
+                </div>
+            </div>
+            """
+        )
 
         with gr.Group(elem_id="wf-chat-shell"):
             with gr.Row(elem_id="wf-chat-toolbar"):
