@@ -457,6 +457,52 @@ def init_chatbot():
             overflow-y: auto !important;
         }
 
+        #wf-chat-shell {
+            position: relative !important;
+        }
+        #wf-chat-toolbar {
+            position: absolute !important;
+            top: 8px !important;
+            right: 12px !important;
+            z-index: 50 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            background: rgba(255,255,255,0.92) !important;
+            border: 1px solid rgba(15,23,42,0.14) !important;
+            border-radius: 5px !important;
+            box-shadow: 0 1px 4px rgba(15,23,42,0.12) !important;
+            padding: 3px !important;
+        }
+        #wf-chat-toolbar button {
+            width: 26px !important;
+            height: 26px !important;
+            min-height: 26px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: 0 !important;
+            border-radius: 4px !important;
+            background: transparent !important;
+            color: #475569 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            box-shadow: none !important;
+        }
+        #wf-chat-toolbar button:hover {
+            background: rgba(15,23,42,0.08) !important;
+            color: #0f172a !important;
+        }
+        #wf-chat-toolbar svg {
+            width: 17px !important;
+            height: 17px !important;
+            stroke: currentColor !important;
+        }
+        #wf-clear-hidden {
+            display: none !important;
+        }
+
         /* Restore some breathing room on the input row */
         .input-row {
             margin-top: 8px !important;
@@ -497,11 +543,63 @@ def init_chatbot():
 
         gr.Markdown("### 💬 WorkFriend Chatbot")
 
-        chatbot = gr.Chatbot(
-            label="WorkFriend Conversation",
-            height=200,
-            elem_classes=["chatbot-area"],
-        )
+        with gr.Group(elem_id="wf-chat-shell"):
+            chatbot = gr.Chatbot(
+                label="WorkFriend Conversation",
+                height=200,
+                elem_id="wf-chatbot",
+                elem_classes=["chatbot-area"],
+            )
+            gr.HTML(
+                """
+                <div id="wf-chat-toolbar" aria-label="Chat actions">
+                    <button type="button" title="Share chat" aria-label="Share chat"
+                        onclick="
+                            const shareData = {title: document.title, url: window.location.href};
+                            if (navigator.share) {
+                                navigator.share(shareData).catch(() => {});
+                            } else if (navigator.clipboard) {
+                                navigator.clipboard.writeText(window.location.href);
+                            }
+                        ">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <path d="M8.6 10.6 15.4 6.4"></path>
+                            <path d="M8.6 13.4 15.4 17.6"></path>
+                        </svg>
+                    </button>
+                    <button type="button" title="Clear chat" aria-label="Clear chat"
+                        onclick="
+                            const clearButton = document.querySelector('#wf-clear-hidden button')
+                                || document.querySelector('#wf-clear-hidden');
+                            clearButton?.click();
+                        ">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M3 6h18"></path>
+                            <path d="M8 6V4h8v2"></path>
+                            <path d="M19 6 18 20H6L5 6"></path>
+                            <path d="M10 11v6"></path>
+                            <path d="M14 11v6"></path>
+                        </svg>
+                    </button>
+                    <button type="button" title="Copy last response" aria-label="Copy last response"
+                        onclick="
+                            const scope = document.querySelector('#wf-chatbot') || document;
+                            const blocks = scope.querySelectorAll('.message, .chat-message, [data-testid=bot]');
+                            const text = blocks.length ? blocks[blocks.length - 1].innerText.trim() : '';
+                            if (text && navigator.clipboard) navigator.clipboard.writeText(text);
+                        ">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                </div>
+                """
+            )
+            clear_btn = gr.Button("Clear chat", elem_id="wf-clear-hidden")
 
         with gr.Row(elem_classes=["input-row"], equal_height=True):
 
@@ -521,6 +619,7 @@ def init_chatbot():
 
                 send_btn = gr.Button("Send", elem_classes=["wf-btn"])
 
+        clear_btn.click(lambda: ([], ""), None, [chatbot, user_input])
         send_btn.click(answer_fn, [user_input, chatbot], [chatbot, user_input])
         user_input.submit(answer_fn, [user_input, chatbot], [chatbot, user_input])
 
