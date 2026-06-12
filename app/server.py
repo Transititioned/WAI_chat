@@ -1,6 +1,9 @@
 # app/server.py
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from gradio.routes import mount_gradio_app
 
 from app.bootstrap import bootstrap
@@ -9,6 +12,10 @@ from app.chatbot import init_chatbot
 
 # 1. Initialize FastAPI
 app = FastAPI(title="WorkFriend WAI")
+
+STATIC_DIR = Path("static")
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # 2. Add CORS Middleware (Critical for Cross-Domain Mobile Access)
 app.add_middleware(
