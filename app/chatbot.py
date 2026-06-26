@@ -25,6 +25,20 @@ from app.retrieval_policy import (
 from app.router import route_info, postprocess_answer
 
 
+
+
+
+print("OPENAI_API_KEY prefix:", os.getenv("OPENAI_API_KEY", "")[:12])
+print("OPENAI_API_KEY suffix:", os.getenv("OPENAI_API_KEY", "")[-6:])
+
+
+
+
+
+
+
+
+
 # ==========================================================
 # Monkey-patch gradio_client bug
 # ==========================================================
