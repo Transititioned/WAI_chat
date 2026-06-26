@@ -26,10 +26,15 @@ from app.router import route_info, postprocess_answer
 
 
 
-
+#API Key Diagnostics call section:
 
 print("OPENAI_API_KEY prefix:", os.getenv("OPENAI_API_KEY", "")[:12])
 print("OPENAI_API_KEY suffix:", os.getenv("OPENAI_API_KEY", "")[-6:])
+
+if os.getenv("OPENAI_DIAGNOSTICS", "").lower() == "true":
+    from app.openai_diagnostics import run_openai_diagnostics
+    run_openai_diagnostics()
+
 
 
 
