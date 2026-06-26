@@ -1,5 +1,6 @@
 # ==========================================================
 # app/chatbot.py — WorkFriend WAI (v4.x)
+# Lazy Chroma initialisation version
 # ==========================================================
 
 import os
@@ -42,33 +43,78 @@ except Exception as e:
 
 
 # ==========================================================
-# One-time initialisation
+# One-time lightweight initialisation
 # ==========================================================
 
-CONTENT_DIR = Path("content")
+CONTENT_DIR = Path(os.getenv("CONTENT_DIR", "content"))
 if not CONTENT_DIR.exists():
     CONTENT_DIR = Path(".")
+
+CHROMA_DIR = Path(os.getenv("CHROMA_DIR", "chroma_db"))
+CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "wai_corpus")
 
 openai_key = os.getenv("OPENAI_API_KEY")
 
 embedding = OpenAIEmbeddings(
-    model="text-embedding-3-small",
+    model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
     openai_api_key=openai_key,
 )
 
 llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    temperature=0.28,
+    model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
+    temperature=float(os.getenv("OPENAI_TEMPERATURE", "0.28")),
     openai_api_key=openai_key,
 )
 
 corpus_docs = loaders.load_corpus_chunks(CONTENT_DIR)
 
-vectordb = Chroma.from_texts(
-    texts=[d["content"] for d in corpus_docs],
-    embedding=embedding,
-    metadatas=[d["metadata"] for d in corpus_docs],
-)
+# Lazy global. Do NOT build Chroma at import/startup.
+vectordb = None
+
+
+def _get_vectordb():
+    """
+    Lazy-load Chroma only when semantic retrieval is actually needed.
+
+    Behaviour:
+    - If CHROMA_DIR already exists and has files, load it.
+    - Otherwise build embeddings once and persist them.
+    - Prevents app startup from dying just because embeddings are unavailable.
+    """
+    global vectordb
+
+    if vectordb is not None:
+        return vectordb
+
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+
+    has_existing_db = any(CHROMA_DIR.iterdir())
+
+    if has_existing_db:
+        print(f"✅ Loading existing Chroma DB from {CHROMA_DIR}")
+        vectordb = Chroma(
+            collection_name=CHROMA_COLLECTION_NAME,
+            persist_directory=str(CHROMA_DIR),
+            embedding_function=embedding,
+        )
+        return vectordb
+
+    print("⚠️ No existing Chroma DB found. Building embeddings once...")
+    vectordb = Chroma.from_texts(
+        texts=[d["content"] for d in corpus_docs],
+        embedding=embedding,
+        metadatas=[d["metadata"] for d in corpus_docs],
+        collection_name=CHROMA_COLLECTION_NAME,
+        persist_directory=str(CHROMA_DIR),
+    )
+
+    try:
+        vectordb.persist()
+    except Exception as e:
+        print(f"[chatbot] Chroma persist warning/non-fatal: {e}")
+
+    print(f"✅ Chroma DB built and persisted to {CHROMA_DIR}")
+    return vectordb
 
 
 def _rag_debug_enabled() -> bool:
@@ -238,19 +284,20 @@ def _format_context(docs) -> str:
 
 
 def _semantic_search(question: str, domain: str | None = None, k: int = 4):
+    db = _get_vectordb()
     filter_arg = {"domain": domain} if domain else None
 
     try:
         if filter_arg:
-            docs_with_scores = vectordb.similarity_search_with_score(question, k=k, filter=filter_arg)
+            docs_with_scores = db.similarity_search_with_score(question, k=k, filter=filter_arg)
         else:
-            docs_with_scores = vectordb.similarity_search_with_score(question, k=k)
+            docs_with_scores = db.similarity_search_with_score(question, k=k)
         return [doc for doc, _ in docs_with_scores], docs_with_scores
     except Exception as e:
         _debug(f"similarity scores unavailable: {e}")
         if filter_arg:
-            return vectordb.similarity_search(question, k=k, filter=filter_arg), []
-        return vectordb.similarity_search(question, k=k), []
+            return db.similarity_search(question, k=k, filter=filter_arg), []
+        return db.similarity_search(question, k=k), []
 
 
 def _semantic_candidates(question: str, domain: str | None = None, k: int = 6):
@@ -385,6 +432,7 @@ def retrieve_and_answer(q: str) -> str:
     intent = detect_retrieval_intent(q)
     docs = _retrieve(q, routing["domain"])
     context = _format_context(docs)
+
     if intent == "advisory":
         response_shape = (
             "For advisory/diagnostic questions, lead with the most specific trigger-action cards or examples in context. "
@@ -429,15 +477,9 @@ def init_chatbot():
         history = history + [(msg, reply)]
         return history, ""
 
-    # Proven CSS pattern from CaveBot 0.3.9 lessons:
-    # Universal padding/margin/gap reset removes invisible spacing that
-    # Gradio injects via .block, .wrap, .svelte-* parent containers —
-    # this is what actually causes the below-the-fold issue.
-    # Combined with a fixed chatbot height + overflow-y: auto for scrolling.
     custom_css = """
         footer, .footer { display: none !important; }
 
-        /* Universal reset — kills all invisible Gradio padding/gaps */
         .gradio-container *,
         .gradio-container,
         .block,
@@ -477,7 +519,6 @@ def init_chatbot():
             margin-top: 3px !important;
         }
 
-        /* Chatbot fixed height with scroll */
         .chatbot-area {
             max-height: 200px !important;
             overflow-y: auto !important;
@@ -489,10 +530,9 @@ def init_chatbot():
             border-radius: 8px !important;
             box-shadow: 0 1px 5px rgba(15,23,42,0.08) !important;
             overflow: hidden !important;
-        }
-        #wf-chat-shell {
             position: relative !important;
         }
+
         #wf-chat-toolbar,
         #wf-chat-toolbar > div {
             position: absolute !important;
@@ -544,13 +584,11 @@ def init_chatbot():
             display: none !important;
         }
 
-        /* Restore some breathing room on the input row */
         .input-row {
             margin-top: 8px !important;
             padding-top: 4px !important;
         }
 
-        /* Brand buttons — nuclear override for all Gradio button variants */
         .wf-btn,
         .wf-btn:not(.hidden),
         div.wf-btn,
